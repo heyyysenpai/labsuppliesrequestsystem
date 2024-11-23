@@ -120,14 +120,13 @@ def create_main_window():
 
     # Clear function
     def clear():
-        # Clear only editable fields based on user role
         if current_user_role == 'admin':
-            # Admin can only edit REQUEST NO. and STATUS
+            # Admin can only clear REQUEST NO. and STATUS
             placeholderArray[0].set("")  # Clear REQUEST NO.
             placeholderArray[1].set("")  # Clear STATUS
         else:
-            # Staff can edit everything except REQUEST NO. and STATUS
-            for i in range(2, 11):  # Clear fields from REQUEST DATE to PPMP ALLOCATION
+            # Staff can clear everything except REQUEST NO. and STATUS
+            for i in range(2, len(placeholderArray)):
                 placeholderArray[i].set("")
 
     # Export function
@@ -209,35 +208,27 @@ def create_main_window():
         statusArray = ['Pending', 'Done']
 
         if current_user_role == 'admin':
-            # Admin can only edit REQUEST NO. and STATUS
-            entry_widgets = [
-                Entry(entries_frame, width=50, textvariable=placeholderArray[0]),  # REQUEST NO. - Editable
-                ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], values=statusArray),  # STATUS - Editable
-                Entry(entries_frame, width=50, textvariable=placeholderArray[2], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[3], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[4], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[5], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[6], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[7], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[8], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[9], state='readonly'),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[10], state='readonly'),
-            ]
+            # Admin: Only REQUEST NO. and STATUS are editable
+            entry_widgets = []
+            for i in range(11):
+                if i == 0:  # REQUEST NO.
+                    widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i])
+                elif i == 1:  # STATUS
+                    widget = ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[i], values=statusArray)
+                else:  # All other fields
+                    widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
+                entry_widgets.append(widget)
         else:
-            # Staff can edit everything except REQUEST NO. and STATUS
-            entry_widgets = [
-                Entry(entries_frame, width=50, textvariable=placeholderArray[0], state='readonly'),  # REQUEST NO. - Readonly
-                ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], state='readonly'),  # STATUS - Readonly
-                Entry(entries_frame, width=50, textvariable=placeholderArray[2]),  # Rest are editable
-                Entry(entries_frame, width=50, textvariable=placeholderArray[3]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[4]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[5]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[6]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[7]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[8]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[9]),
-                Entry(entries_frame, width=50, textvariable=placeholderArray[10]),
-            ]
+            # Staff: Everything except REQUEST NO. and STATUS is editable
+            entry_widgets = []
+            for i in range(11):
+                if i == 0:  # REQUEST NO.
+                    widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
+                elif i == 1:  # STATUS
+                    widget = ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
+                else:  # All other fields
+                    widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i])
+                entry_widgets.append(widget)
 
         for i, entry in enumerate(entry_widgets):
             entry.grid(row=i, column=1, padx=5, pady=5)
@@ -335,13 +326,7 @@ def create_login_window():
         username = username_entry.get()
         password = password_entry.get()
         
-        # Simple authentication logic
-        if username == "admin" and password == "admin":
-            current_user_role = "admin"
-            login_window.destroy()
-            create_main_window()
-        elif username == "staff" and password == "staff":
-            current_user_role = "staff"
+        if validate_login(username, password):
             login_window.destroy()
             create_main_window()
         else:
