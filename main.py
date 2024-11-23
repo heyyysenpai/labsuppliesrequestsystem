@@ -3,9 +3,10 @@ from tkinter import ttk, messagebox
 import tkinter
 import random
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from datetime import datetime
+import pandas as pd
 
 last_request_number = 0 # To keep track of last request number
 saved_requests = [] # List of saved requests
@@ -147,36 +148,26 @@ def create_main_window():
             messagebox.showinfo("Export", "No data")
             return
         
-        # Get selected values and columns
-        values = my_tree.item(selected_item[0])['values']
-        columns = ("Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", 
-                  "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation")
-        
-        # Create data for PDF
-        data = [[col, str(val)] for col, val in zip(columns, values)]
-        
-        # Generate PDF filename with timestamp
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"request_export_{timestamp}.pdf"
-        
-        # Create PDF
-        doc = SimpleDocTemplate(filename, pagesize=letter)
-        
-        # Create table for PDF
-        table = Table(data)
-        table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, -1), colors.grey),
-            ('TEXTCOLOR', (0, 0), (0, -1), colors.whitesmoke),
-            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 12),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            ('GRID', (0, 0), (-1, -1), 1, colors.black)
-        ]))
-        
-        # Build PDF
-        doc.build([table])
-        messagebox.showinfo("Success", f"Data exported to {filename}")
+        try:
+            # Get selected values and columns
+            values = list(my_tree.item(selected_item[0])['values'])  # Convert tuple to list
+            columns = ["Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", 
+                      "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation"]
+            
+            # Create DataFrame with the selected row
+            df = pd.DataFrame([values], columns=columns)
+            
+            # Generate Excel filename with timestamp
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"request_export_{timestamp}.xlsx"
+            
+            # Export to Excel with error handling
+            with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name='Request Details')
+                
+            messagebox.showinfo("Success", f"Data exported to {filename}")
+        except Exception as e:
+            messagebox.showerror("Export Error", f"Failed to export: {str(e)}")
 
     # Create the main frame
     frame = Frame(window, bg="#4169e1")
