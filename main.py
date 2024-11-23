@@ -223,26 +223,39 @@ def create_main_window():
         placeholderArray = [StringVar() for _ in range(11)]
         statusArray = ['Pending', 'Done']
 
-        entry_widgets = [
-            Entry(entries_frame, width=50, textvariable=placeholderArray[0]),  # REQUEST NO. - Editable
-            ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], values=statusArray),  # STATUS - Editable
-            Entry(entries_frame, width=50, textvariable=placeholderArray[2], state='readonly'),  # Rest are readonly
-            Entry(entries_frame, width=50, textvariable=placeholderArray[3], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[4], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[5], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[6], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[7], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[8], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[9], state='readonly'),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[10], state='readonly'),
-        ]
+        if current_user_role == 'admin':
+            # Admin can only edit REQUEST NO. and STATUS
+            entry_widgets = [
+                Entry(entries_frame, width=50, textvariable=placeholderArray[0]),  # REQUEST NO. - Editable
+                ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], values=statusArray),  # STATUS - Editable
+                Entry(entries_frame, width=50, textvariable=placeholderArray[2], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[3], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[4], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[5], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[6], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[7], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[8], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[9], state='readonly'),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[10], state='readonly'),
+            ]
+        else:
+            # Staff can edit everything except REQUEST NO. and STATUS
+            entry_widgets = [
+                Entry(entries_frame, width=50, textvariable=placeholderArray[0], state='readonly'),  # REQUEST NO. - Readonly
+                ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], state='readonly'),  # STATUS - Readonly
+                Entry(entries_frame, width=50, textvariable=placeholderArray[2]),  # Rest are editable
+                Entry(entries_frame, width=50, textvariable=placeholderArray[3]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[4]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[5]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[6]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[7]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[8]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[9]),
+                Entry(entries_frame, width=50, textvariable=placeholderArray[10]),
+            ]
 
         for i, entry in enumerate(entry_widgets):
             entry.grid(row=i, column=1, padx=5, pady=5)
-            
-            # Disable status and request number fields for staff
-            if current_user_role == 'staff' and i in [0, 1]:  # Request No. and Status fields
-                entry['state'] = 'disabled'
 
         # Only show generate code button for admin
         if current_user_role == 'admin':
