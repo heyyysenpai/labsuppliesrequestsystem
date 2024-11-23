@@ -2,6 +2,10 @@ from tkinter import *
 from tkinter import ttk, messagebox
 import tkinter
 import random
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+from datetime import datetime
 
 last_request_number = 0 # To keep track of last request number
 saved_requests = [] # List of saved requests
@@ -136,10 +140,44 @@ def create_main_window():
         for var in placeholderArray:
             var.set("")
 
-    # Export function (placeholder for actual export logic)
+    # Export function
     def export():
-        messagebox.showinfo("Export", "Export functionality is not implemented yet.")
-                        
+        selected_item = my_tree.selection()
+        if not selected_item:
+            messagebox.showinfo("Export", "No data")
+            return
+        
+        # Get selected values and columns
+        values = my_tree.item(selected_item[0])['values']
+        columns = ("Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", 
+                  "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation")
+        
+        # Create data for PDF
+        data = [[col, str(val)] for col, val in zip(columns, values)]
+        
+        # Generate PDF filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"request_export_{timestamp}.pdf"
+        
+        # Create PDF
+        doc = SimpleDocTemplate(filename, pagesize=letter)
+        
+        # Create table for PDF
+        table = Table(data)
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.grey),
+            ('TEXTCOLOR', (0, 0), (0, -1), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        # Build PDF
+        doc.build([table])
+        messagebox.showinfo("Success", f"Data exported to {filename}")
+
     # Create the main frame
     frame = Frame(window, bg="#4169e1")
     frame.pack(fill=BOTH, expand=True)
