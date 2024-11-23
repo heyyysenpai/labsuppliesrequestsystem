@@ -262,22 +262,24 @@ def create_main_window():
         search_entry.pack(side=LEFT, padx=5)
         
         def on_search_change(*args):
-            search_text = search_var.get().lower()
+            search_text = search_var.get().lower().strip()
             
             # Clear the tree
             for item in my_tree.get_children():
                 my_tree.delete(item)
             
-            # If search is empty, show all data using dummydata
+            # Show all data from saved_requests if available, otherwise use dummydata
+            data_to_display = saved_requests if saved_requests else dummydata
+            
             if not search_text:
-                for array in dummydata:
-                    my_tree.insert(parent='', index='end', iid=array, text="", values=array, tag="orow")
+                # Display all data when search is empty
+                for request in data_to_display:
+                    my_tree.insert('', 'end', values=request, tag="orow")
             else:
-                # Filter and repopulate
-                for request in saved_requests:
-                    # Convert all fields to string and search
-                    row_data = [str(field).lower() for field in request]
-                    if any(search_text in field for field in row_data):
+                # Filter and display matching rows
+                for request in data_to_display:
+                    row_values = [str(value).lower() for value in request]
+                    if any(search_text in value for value in row_values):
                         my_tree.insert('', 'end', values=request, tag="orow")
             
             # Maintain row styling
