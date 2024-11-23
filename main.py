@@ -174,7 +174,6 @@ def create_main_window():
             ("SAVE", save),
             ("DELETE", delete),
             ("SELECT", select),
-            ("FIND", None),  # Placeholder for find functionality
             ("CLEAR", clear),
             ("EXPORT", export)
         ]
