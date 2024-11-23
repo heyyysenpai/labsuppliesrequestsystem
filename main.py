@@ -50,7 +50,7 @@ def create_main_window():
         placeholderArray[0].set(request_code)
 
     # Save function
-    def save():
+    def save(): 
         # Both admin and staff can save
         request_data = [var.get() for var in placeholderArray]
         
@@ -123,15 +123,17 @@ def create_main_window():
 
     # Select function
     def select():
+        global placeholderArray
         # Get the selected item from the tree
         selected_item = my_tree.selection()
         
         if selected_item:
             # Get all values from the selected row
-            values = my_tree.item(selected_item)['values']
+            values = my_tree.item(selected_item[0])['values']  # Add [0] to get first selected item
             # Fill entry fields with selected values
-            for i, var in enumerate(placeholderArray):
-                var.set(values[i])
+            for i, value in enumerate(values):
+                if value is not None:  # Check if value exists
+                    placeholderArray[i].set(str(value))  # Convert to string
         else:
             messagebox.showwarning("Selection Error", "Please select an item first.")
 
