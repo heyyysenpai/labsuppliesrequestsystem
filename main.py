@@ -250,6 +250,43 @@ def create_main_window():
 
     create_entries_frame()
 
+    # Create search frame
+    def create_search_frame():
+        search_frame = Frame(frame)
+        search_frame.grid(row=2, column=0, sticky="w", padx=10, pady=5)
+        
+        Label(search_frame, text="Search:", font=("Arial", 10)).pack(side=LEFT, padx=5)
+        
+        search_var = StringVar()
+        search_entry = Entry(search_frame, textvariable=search_var, width=30, font=("Arial", 10))
+        search_entry.pack(side=LEFT, padx=5)
+        
+        def on_search_change(*args):
+            search_text = search_var.get().lower()
+            
+            # Clear the tree
+            for item in my_tree.get_children():
+                my_tree.delete(item)
+            
+            # If search is empty, show all data using dummydata
+            if not search_text:
+                for array in dummydata:
+                    my_tree.insert(parent='', index='end', iid=array, text="", values=array, tag="orow")
+            else:
+                # Filter and repopulate
+                for request in saved_requests:
+                    # Convert all fields to string and search
+                    row_data = [str(field).lower() for field in request]
+                    if any(search_text in field for field in row_data):
+                        my_tree.insert('', 'end', values=request, tag="orow")
+            
+            # Maintain row styling
+            my_tree.tag_configure('orow', background="#EEEEEE")
+        
+        search_var.trace('w', on_search_change)
+
+    create_search_frame()
+
     # Create the Treeview
     my_tree = create_treeview()
 
