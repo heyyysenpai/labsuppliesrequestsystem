@@ -65,32 +65,6 @@ def create_main_window():
         else:
             messagebox.showwarning("Input Error", "Please fill in all fields.")
 
-    # Update function
-    def update():
-        selected_item = my_tree.selection()
-        
-        if not selected_item:
-            messagebox.showwarning("Selection Error", "Please select an item to update.")
-            return
-        
-        request_data = [var.get() for var in placeholderArray]
-        
-        if current_user_role == 'staff':
-            # Staff can't modify status or request number
-            old_values = my_tree.item(selected_item)['values']
-            request_data[0] = old_values[0]  # Keep original request number
-            request_data[1] = old_values[1]  # Keep original status
-        
-        if all(request_data):
-            for i, item in enumerate(saved_requests):
-                if item[0] == my_tree.item(selected_item)['values'][0]:
-                    saved_requests[i] = request_data
-                    refresh_table()
-                    clear()
-                    return
-        else:
-            messagebox.showwarning("Input Error", "Please fill in all fields.")
-
     # Delete function
     def delete():
         selected_item = my_tree.selection()
@@ -146,9 +120,15 @@ def create_main_window():
 
     # Clear function
     def clear():
-        # Clear all entry fields
-        for var in placeholderArray:
-            var.set("")
+        # Clear only editable fields based on user role
+        if current_user_role == 'admin':
+            # Admin can only edit REQUEST NO. and STATUS
+            placeholderArray[0].set("")  # Clear REQUEST NO.
+            placeholderArray[1].set("")  # Clear STATUS
+        else:
+            # Staff can edit everything except REQUEST NO. and STATUS
+            for i in range(2, 11):  # Clear fields from REQUEST DATE to PPMP ALLOCATION
+                placeholderArray[i].set("")
 
     # Export function
     def export():
@@ -192,7 +172,6 @@ def create_main_window():
 
         buttons = [
             ("SAVE", save),
-            ("UPDATE", update),
             ("DELETE", delete),
             ("SELECT", select),
             ("FIND", None),  # Placeholder for find functionality
@@ -228,7 +207,7 @@ def create_main_window():
         # Entry fields
         global placeholderArray
         placeholderArray = [StringVar() for _ in range(11)]
-        statusArray = ['Pending', 'Done', 'To be Deleted']
+        statusArray = ['Pending', 'Done']
 
         if current_user_role == 'admin':
             # Admin can only edit REQUEST NO. and STATUS
