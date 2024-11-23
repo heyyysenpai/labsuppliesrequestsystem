@@ -224,17 +224,17 @@ def create_main_window():
         statusArray = ['Pending', 'Done']
 
         entry_widgets = [
-            Entry(entries_frame, width=50, textvariable=placeholderArray[0]),
-            ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], values=statusArray),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[2]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[3]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[4]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[5]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[6]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[7]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[8]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[9]),
-            Entry(entries_frame, width=50, textvariable=placeholderArray[10]),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[0]),  # REQUEST NO. - Editable
+            ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[1], values=statusArray),  # STATUS - Editable
+            Entry(entries_frame, width=50, textvariable=placeholderArray[2], state='readonly'),  # Rest are readonly
+            Entry(entries_frame, width=50, textvariable=placeholderArray[3], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[4], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[5], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[6], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[7], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[8], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[9], state='readonly'),
+            Entry(entries_frame, width=50, textvariable=placeholderArray[10], state='readonly'),
         ]
 
         for i, entry in enumerate(entry_widgets):
