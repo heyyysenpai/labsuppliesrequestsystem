@@ -99,27 +99,34 @@ def create_main_window():
             messagebox.showwarning("Selection Error", "Please select an item to delete.")
             return
         
-        request_no = my_tree.item(selected_item)['values'][0]
+        request_no = my_tree.item(selected_item[0])['values'][0]
         
         if current_user_role == 'staff':
-            # Staff deletion requests need admin approval
-            response = messagebox.askyesno("Delete Request", 
-                "This will mark the item for deletion and require admin approval. Continue?")
-            if response:
-                # Mark the status as "Pending Deletion"
-                for i, item in enumerate(saved_requests):
-                    if item[0] == request_no:
-                        saved_requests[i][1] = "Pending Deletion"
-                        refresh_table()
-                        messagebox.showinfo("Success", "Delete request sent to admin")
-                        return
+            # Check if form has values
+            form_values = [var.get() for var in placeholderArray]
+            if any(form_values):  # If form is not empty
+                response = messagebox.askyesno("Delete Request", 
+                    "This will mark the item for deletion and require admin approval. Continue?")
+                if response:
+                    # Update the STATUS in the form to 'To be Deleted'
+                    placeholderArray[1].set("To be Deleted")
+                    # Update the status in saved_requests
+                    for i, item in enumerate(saved_requests):
+                        if item[0] == request_no:
+                            saved_requests[i][1] = "To be Deleted"
+                            refresh_table()
+                            messagebox.showinfo("Success", "Item marked for deletion and pending admin approval")
+                            return
         else:
             # Admin can delete directly
-            for i, item in enumerate(saved_requests):
-                if item[0] == request_no:
-                    del saved_requests[i]
-                    refresh_table()
-                    return
+            response = messagebox.askyesno("Delete", "Are you sure you want to delete this item?")
+            if response:
+                for i, item in enumerate(saved_requests):
+                    if item[0] == request_no:
+                        del saved_requests[i]
+                        refresh_table()
+                        clear()
+                        return
 
     # Select function
     def select():
@@ -221,7 +228,7 @@ def create_main_window():
         # Entry fields
         global placeholderArray
         placeholderArray = [StringVar() for _ in range(11)]
-        statusArray = ['Pending', 'Done']
+        statusArray = ['Pending', 'Done', 'To be Deleted']
 
         if current_user_role == 'admin':
             # Admin can only edit REQUEST NO. and STATUS
