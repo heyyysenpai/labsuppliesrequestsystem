@@ -291,28 +291,62 @@ def validate_login(username, password):
 
 # Function to create the login window
 def create_login_window():
-    login_window = Tk()
-    login_window.title("Login")
-    login_window.geometry("300x200")
-
-    Label(login_window, text="Username").pack(pady=10)
-    username_entry = Entry(login_window)
-    username_entry.pack(pady=5)
-
-    Label(login_window, text="Password").pack(pady=10)
-    password_entry = Entry(login_window, show="*")
-    password_entry.pack(pady=5)
-
-    def login():
+    global current_user_role
+    
+    def login(event=None):  # Add event parameter with default None
         username = username_entry.get()
         password = password_entry.get()
-        if validate_login(username, password):
-            login_window.destroy()  # Close the login window
-            create_main_window()  # Open the main application
+        
+        # Simple authentication logic
+        if username == "admin" and password == "admin":
+            current_user_role = "admin"
+            login_window.destroy()
+            create_main_window()
+        elif username == "staff" and password == "staff":
+            current_user_role = "staff"
+            login_window.destroy()
+            create_main_window()
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
-    Button(login_window, text="Login", command=login).pack(pady=20)
+    login_window = Tk()
+    login_window.title("Login")
+    login_window.geometry("500x300")
+
+    title_label = Label(login_window, text="Lab Supplies Request System",
+                       font=("Arial", 12, "bold"))
+    title_label.pack(pady=10)
+
+    Label(login_window, text="Username",
+          font=("Arial", 10)).pack(pady=5)
+    username_entry = Entry(login_window, font=("Arial", 10),
+                         width=25)
+    username_entry.pack(pady=5)
+
+    Label(login_window, text="Password",
+          font=("Arial", 10)).pack(pady=5)
+    password_entry = Entry(login_window, show="*", font=("Arial", 10),
+                         width=25)
+    password_entry.pack(pady=5)
+
+    login_btn = Button(login_window, text="Login",
+                      command=login,
+                      font=("Arial", 10, "bold"),
+                      width=15)
+    login_btn.pack(pady=15)
+
+    # Bind Enter key to login function
+    login_window.bind('<Return>', login)  # Bind to window
+    username_entry.bind('<Return>', login)  # Bind to username entry
+    password_entry.bind('<Return>', login)  # Bind to password entry
+
+    # Center the login window
+    login_window.update_idletasks()
+    width = login_window.winfo_width()
+    height = login_window.winfo_height()
+    x = (login_window.winfo_screenwidth() // 2) - (width // 2)
+    y = (login_window.winfo_screenheight() // 2) - (height // 2)
+    login_window.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
     login_window.mainloop()
 
