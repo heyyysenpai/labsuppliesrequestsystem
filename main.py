@@ -50,7 +50,6 @@ saved_requests = [] # List of saved requests
 current_user_role = None  # Will store 'admin' or 'staff'
 selected_record_id = None
 
-
 def create_main_window():
     # Initialize the main window
     window = Tk()
@@ -347,6 +346,62 @@ def create_main_window():
         except Exception as e:
             messagebox.showerror("Export Error", f"Failed to export: {str(e)}")
 
+    # Add new function
+    def add_new():
+        # Only staff can add new records
+        if current_user_role != 'staff':
+            messagebox.showwarning("Access Denied", "Only staff members can add new records.")
+            return
+
+        # Get current values
+        request_data = [var.get() for var in placeholderArray]
+        
+        # Check if REQUEST NO. is not empty
+        if request_data[0]:  # REQUEST NO. is at index 0
+            messagebox.showwarning("Input Error", "REQUEST NO. must be empty for new records.")
+            return
+        
+        # Check if all required fields (except REQUEST NO.) are filled
+        if not all(request_data[2:]):  # Skip REQUEST NO. and STATUS
+            messagebox.showwarning("Input Error", "Please fill in all fields.")
+            return
+        
+        # Set STATUS to "Pending"
+        placeholderArray[1].set("Pending")  # STATUS is at index 1
+        
+        # Update request_data with the new STATUS
+        request_data[1] = "Pending"
+        
+        data = {
+            'request_no': '',  # Empty REQUEST NO.
+            'status': 'Pending',
+            'request_date': request_data[2],
+            'item': request_data[3],
+            'quantity': request_data[4],
+            'unit': request_data[5],
+            'catalog_no': request_data[6],
+            'brand': request_data[7],
+            'product_link': request_data[8],
+            'iob_allocation': request_data[9],
+            'ppmp_allocation': request_data[10]
+        }
+        
+        try:
+            # Insert new record
+            result = supabase.table('labsuppliesrequestsystem')\
+                .insert(data)\
+                .execute()
+            
+            messagebox.showinfo("Success", "Record added successfully")
+            
+            # Reset form and refresh table
+            clear()
+            refresh_table()
+            
+        except Exception as e:
+            print(f"Add error: {str(e)}")
+            messagebox.showerror("Error", f"Failed to add record: {str(e)}")
+
     # Create the main frame
     frame = Frame(window, bg="#4169e1")
     frame.pack(fill=BOTH, expand=True)
@@ -360,6 +415,7 @@ def create_main_window():
         manage_frame.grid(row=0, column=0, sticky="w", padx=10, pady=20)
 
         buttons = [
+            ("ADD+", add_new),
             ("SAVE", save),
             ("DELETE", delete),
             ("SELECT", select),
