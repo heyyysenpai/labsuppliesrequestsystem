@@ -13,6 +13,7 @@ load_dotenv()
 import os
 
 from supabase import create_client, Client
+from tkcalendar import DateEntry
 
 
 # After load_dotenv()
@@ -461,6 +462,9 @@ def create_main_window():
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i])
                 elif i == 1:  # STATUS
                     widget = ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[i], values=statusArray)
+                elif i == 2:  # REQUEST DATE
+                    widget = DateEntry(entries_frame, width=47, textvariable=placeholderArray[i], 
+                                     date_pattern='yyyy-mm-dd', state='readonly')
                 else:  # All other fields
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
                 entry_widgets.append(widget)
@@ -472,6 +476,9 @@ def create_main_window():
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
                 elif i == 1:  # STATUS
                     widget = ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
+                elif i == 2:  # REQUEST DATE
+                    widget = DateEntry(entries_frame, width=47, textvariable=placeholderArray[i], 
+                                     date_pattern='yyyy-mm-dd')
                 else:  # All other fields
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i])
                 entry_widgets.append(widget)
