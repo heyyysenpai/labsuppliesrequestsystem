@@ -48,6 +48,7 @@ except Exception as e:
 last_request_number = 0 # To keep track of last request number
 saved_requests = [] # List of saved requests
 current_user_role = None  # Will store 'admin' or 'staff'
+selected_record_id = None
 
 
 def create_main_window():
@@ -122,20 +123,57 @@ def create_main_window():
         placeholderArray[0].set(request_code)
 
     # Save function
-    def save(): 
-        # Both admin and staff can save
+    def save():
+        global selected_record_id
         request_data = [var.get() for var in placeholderArray]
         
-        if all(request_data):
-            # Set initial status to 'Pending' for staff
-            if current_user_role == 'staff':
-                request_data[1] = 'Pending'  # Status field
+        # Check if any form field is filled
+        if not any(request_data):
+            messagebox.showwarning("Input Error", "Please select a row to update or fill in the form for a new entry.")
+            return
+        
+        # Check if all required fields are filled
+        if not all(request_data):
+            messagebox.showwarning("Input Error", "Please fill in all fields.")
+            return
+        
+        data = {
+            'request_no': request_data[0],
+            'status': request_data[1],
+            'request_date': request_data[2],
+            'item': request_data[3],
+            'quantity': request_data[4],
+            'unit': request_data[5],
+            'catalog_no': request_data[6],
+            'brand': request_data[7],
+            'product_link': request_data[8],
+            'iob_allocation': request_data[9],
+            'ppmp_allocation': request_data[10]
+        }
+        
+        try:
+            if selected_record_id:
+                # Update existing record
+                result = supabase.table('labsuppliesrequestsystem')\
+                    .update(data)\
+                    .eq('id', selected_record_id)\
+                    .execute()
+                messagebox.showinfo("Success", "Record updated successfully")
+            else:
+                # Insert new record
+                result = supabase.table('labsuppliesrequestsystem')\
+                    .insert(data)\
+                    .execute()
+                messagebox.showinfo("Success", "Record saved successfully")
             
-            saved_requests.append(request_data)
+            # Reset selected_record_id and refresh
+            selected_record_id = None
             refresh_table()
             clear()
-        else:
-            messagebox.showwarning("Input Error", "Please fill in all fields.")
+            
+        except Exception as e:
+            print(f"Save error: {str(e)}")
+            messagebox.showerror("Error", f"Failed to save: {str(e)}")
 
     # Delete function
     def delete():
@@ -195,17 +233,27 @@ def create_main_window():
 
     # Select function
     def select():
-        global placeholderArray
-        # Get the selected item from the tree
+        global placeholderArray, selected_record_id
         selected_item = my_tree.selection()
         
         if selected_item:
-            # Get all values from the selected row
-            values = my_tree.item(selected_item[0])['values']  # Add [0] to get first selected item
-            # Fill entry fields with selected values
-            for i, value in enumerate(values):
-                if value is not None:  # Check if value exists
-                    placeholderArray[i].set(str(value))  # Convert to string
+            values = my_tree.item(selected_item[0])['values']
+            request_no = values[0]
+            
+            try:
+                record = supabase.table('labsuppliesrequestsystem')\
+                    .select('*')\
+                    .eq('request_no', request_no)\
+                    .execute()
+                
+                if record.data:
+                    selected_record_id = record.data[0]['id']
+                    for i, value in enumerate(values):
+                        if value is not None:
+                            placeholderArray[i].set(str(value))
+            except Exception as e:
+                print(f"Select error: {str(e)}")
+                messagebox.showerror("Error", "Failed to get record details")
         else:
             messagebox.showwarning("Selection Error", "Please select an item first.")
 
