@@ -7,6 +7,43 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from datetime import datetime
 import pandas as pd
+from dotenv import load_dotenv
+load_dotenv()
+
+import os
+
+from supabase import create_client, Client
+
+
+# After load_dotenv()
+print("Supabase URL:", os.environ.get("SUPABASE_URL"))
+print("Supabase Key:", os.environ.get("SUPABASE_KEY"))
+
+# Initialize Supabase client
+url = os.environ.get("SUPABASE_URL")
+key = os.environ.get("SUPABASE_KEY")
+
+if not url or not key:
+    raise Exception("Supabase credentials not found in environment variables")
+
+supabase: Client = create_client(url, key)
+
+try:
+    # Test the connection
+    print("Attempting to connect to Supabase...")
+    print(f"Table name: labsuppliesrequestsystem")
+    response = supabase.table('labsuppliesrequestsystem').select("*").execute()
+    print("Raw response:", response)
+    print("Response data:", response.data)
+    print("Supabase connection successful!")
+    print(f"Number of records: {len(response.data)}")
+    if response.data:
+        print("First record:", response.data[0])
+    else:
+        print("No records found in the response")
+except Exception as e:
+    print(f"Supabase connection error: {str(e)}")
+    print(f"Error type: {type(e)}")
 
 last_request_number = 0 # To keep track of last request number
 saved_requests = [] # List of saved requests
@@ -38,9 +75,44 @@ def create_main_window():
     def refresh_table():
         for data in my_tree.get_children():
             my_tree.delete(data)
-        for array in dummydata:
-            my_tree.insert(parent='', index='end', iid=array, text="", values=array, tag="orow")
-        my_tree.tag_configure('orow', background="#EEEEEE")
+        
+        try:
+            print("\nRefresh Table Debug:")
+            print("1. Attempting to fetch data...")
+            response = supabase.table('labsuppliesrequestsystem').select(
+                'request_no, status, request_date, item, quantity, unit, catalog_no, brand, product_link, iob_allocation, ppmp_allocation'
+            ).execute()
+            print("2. Response received:", response)
+            supabase_data = response.data
+            print("3. Data extracted:", supabase_data)
+            print(f"4. Number of records: {len(supabase_data)}")
+            
+            if not supabase_data:
+                print("5. No data returned from Supabase")
+                return
+            
+            for row in supabase_data:
+                print("6. Processing row:", row)
+                values = [
+                    row.get('request_no', ''),
+                    row.get('status', ''),
+                    row.get('request_date', ''),
+                    row.get('item', ''),
+                    row.get('quantity', ''),
+                    row.get('unit', ''),
+                    row.get('catalog_no', ''),
+                    row.get('brand', ''),
+                    row.get('product_link', ''),
+                    row.get('iob_allocation', ''),
+                    row.get('ppmp_allocation', '')
+                ]
+                my_tree.insert(parent='', index='end', values=values, tag="orow")
+            
+            my_tree.tag_configure('orow', background="#EEEEEE")
+        except Exception as e:
+            print(f"Error in refresh_table: {str(e)}")
+            print(f"Error type: {type(e)}")
+            messagebox.showerror("Database Error", f"Failed to fetch data: {str(e)}")
 
     # Generate code
     def generate_code():
@@ -258,22 +330,54 @@ def create_main_window():
             for item in my_tree.get_children():
                 my_tree.delete(item)
             
-            # Show all data from saved_requests if available, otherwise use dummydata
-            data_to_display = saved_requests if saved_requests else dummydata
+            try:
+                # Fetch fresh data from Supabase
+                response = supabase.table('labsuppliesrequestsystem').select(
+                    'request_no, status, request_date, item, quantity, unit, catalog_no, brand, product_link, iob_allocation, ppmp_allocation'
+                ).execute()
+                data_to_display = response.data
+                
+                if not search_text:
+                    # Display all data when search is empty
+                    for row in data_to_display:
+                        values = [
+                            row.get('request_no', ''),
+                            row.get('status', ''),
+                            row.get('request_date', ''),
+                            row.get('item', ''),
+                            row.get('quantity', ''),
+                            row.get('unit', ''),
+                            row.get('catalog_no', ''),
+                            row.get('brand', ''),
+                            row.get('product_link', ''),
+                            row.get('iob_allocation', ''),
+                            row.get('ppmp_allocation', '')
+                        ]
+                        my_tree.insert('', 'end', values=values, tag="orow")
+                else:
+                    # Filter and display matching rows
+                    for row in data_to_display:
+                        row_values = [str(value).lower() for value in row.values()]
+                        if any(search_text in value for value in row_values):
+                            values = [
+                                row.get('request_no', ''),
+                                row.get('status', ''),
+                                row.get('request_date', ''),
+                                row.get('item', ''),
+                                row.get('quantity', ''),
+                                row.get('unit', ''),
+                                row.get('catalog_no', ''),
+                                row.get('brand', ''),
+                                row.get('product_link', ''),
+                                row.get('iob_allocation', ''),
+                                row.get('ppmp_allocation', '')
+                            ]
+                            my_tree.insert('', 'end', values=values, tag="orow")
             
-            if not search_text:
-                # Display all data when search is empty
-                for request in data_to_display:
-                    my_tree.insert('', 'end', values=request, tag="orow")
-            else:
-                # Filter and display matching rows
-                for request in data_to_display:
-                    row_values = [str(value).lower() for value in request]
-                    if any(search_text in value for value in row_values):
-                        my_tree.insert('', 'end', values=request, tag="orow")
-            
-            # Maintain row styling
-            my_tree.tag_configure('orow', background="#EEEEEE")
+                # Maintain row styling
+                my_tree.tag_configure('orow', background="#EEEEEE")
+            except Exception as e:
+                messagebox.showerror("Database Error", f"Failed to fetch data: {str(e)}")
         
         search_var.trace('w', on_search_change)
 
@@ -281,12 +385,6 @@ def create_main_window():
 
     # Create the Treeview
     my_tree = create_treeview()
-
-    # Dummy data for testing
-    dummydata = [
-        ['Request1', 'Pending', '2023-10-01', 'Item1', '10', ' pcs', 'CAT001', 'BrandA', 'http://example.com', 'IOB1', 'PPMP1'],
-        ['Request2', 'Done', '2023-10-02', 'Item2', '5', 'pcs', 'CAT002', 'BrandB', 'http://example.com', 'IOB2', 'PPMP2']
-    ]
 
     # Set up the columns for the Treeview
     my_tree['columns'] = ("Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", "Catalog No.",
