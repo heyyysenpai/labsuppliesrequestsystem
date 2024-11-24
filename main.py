@@ -52,10 +52,45 @@ selected_record_id = None
 
 
 def create_main_window():
-# Initialize the main window
-    window = tkinter.Tk()
+    # Initialize the main window
+    window = Tk()
     window.title("Lab Supplies Request System")
-    window.geometry("720x640")
+    window.geometry("1350x700")
+    window.resizable(False, False)
+
+    # Create header frame with user info and logout button
+    header_frame = Frame(window)
+    header_frame.pack(fill=X, padx=10, pady=5)
+
+    # Create right-aligned container frame
+    right_container = Frame(header_frame)
+    right_container.pack(side=RIGHT)
+
+    # Add logout button (first, so it appears on the right)
+    def logout():
+        response = messagebox.askyesno("Logout", "Are you sure you want to logout?")
+        if response:
+            window.destroy()  # Close the main window
+            login_window = create_login_window()  # Create new login window
+            login_window.mainloop()
+
+    logout_button = Button(
+        right_container, 
+        text="Logout", 
+        command=logout,
+        bg="#ff4d4d",  # Red background
+        fg="white",    # White text
+        font=("Arial", 10, "bold"),
+        padx=10,
+        pady=2,
+        relief=RAISED,
+        cursor="hand2"  # Hand cursor on hover
+    )
+    logout_button.pack(side=RIGHT, padx=(5, 0))  # Small padding between label and button
+
+    # Add user info label (to the left of logout button)
+    user_label = Label(right_container, text=f"Hello, {current_user_role}", font=("Arial", 10))
+    user_label.pack(side=RIGHT)
 
     # Create a Treeview with a scrollbar
     def create_treeview():
