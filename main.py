@@ -148,31 +148,50 @@ def create_main_window():
         request_no = my_tree.item(selected_item[0])['values'][0]
         
         if current_user_role == 'staff':
-            # Check if form has values
-            form_values = [var.get() for var in placeholderArray]
-            if any(form_values):  # If form is not empty
-                response = messagebox.askyesno("Delete Request", 
-                    "This will mark the item for deletion and require admin approval. Continue?")
-                if response:
-                    # Update the STATUS in the form to 'To be Deleted'
-                    placeholderArray[1].set("To be Deleted")
-                    # Update the status in saved_requests
-                    for i, item in enumerate(saved_requests):
-                        if item[0] == request_no:
-                            saved_requests[i][1] = "To be Deleted"
-                            refresh_table()
-                            messagebox.showinfo("Success", "Item marked for deletion and pending admin approval")
-                            return
-        else:
-            # Admin can delete directly
-            response = messagebox.askyesno("Delete", "Are you sure you want to delete this item?")
-            if response:
-                for i, item in enumerate(saved_requests):
-                    if item[0] == request_no:
-                        del saved_requests[i]
-                        refresh_table()
-                        clear()
-                        return
+            messagebox.showwarning("Permission Denied", "Staff cannot delete records.")
+            return
+        
+        # Admin workflow - delete directly
+        response = messagebox.askyesno("Delete", "Are you sure you want to delete this item?")
+        if response:
+            try:
+                print(f"Attempting to delete request_no: {request_no}")
+                
+                # Get all records to find the one we want to delete
+                get_records = supabase.table('labsuppliesrequestsystem')\
+                    .select('*')\
+                    .execute()
+                
+                # Find the record with matching request_no
+                record_to_delete = None
+                for record in get_records.data:
+                    if record['request_no'] == request_no:
+                        record_to_delete = record
+                        break
+                
+                if record_to_delete:
+                    # Delete using the record's ID
+                    result = supabase.table('labsuppliesrequestsystem')\
+                        .delete()\
+                        .eq('id', record_to_delete['id'])\
+                        .execute()
+                    
+                    print(f"Delete response: {result}")
+                    
+                    # Remove from treeview and clear form
+                    my_tree.delete(selected_item)
+                    clear()
+                    
+                    # Refresh the table to ensure sync with database
+                    refresh_table()
+                    messagebox.showinfo("Success", "Item deleted successfully")
+                else:
+                    messagebox.showerror("Error", "Record not found in database")
+                    
+            except Exception as e:
+                print(f"Delete error: {str(e)}")
+                print(f"Error type: {type(e)}")
+                messagebox.showerror("Error", f"Failed to delete: {str(e)}")
 
     # Select function
     def select():
