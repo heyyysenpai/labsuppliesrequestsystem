@@ -373,16 +373,16 @@ def create_main_window():
                     # Always disable Request Date when an item is selected
                     entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
                     
-                    # Add this new block
                     if current_user_role == 'staff':
-                        # Check if item has Request No. and Status is 'Done'
-                        request_no = placeholderArray[0].get()
+                        # Get current status
                         status = placeholderArray[1].get()
-                        if request_no and status == 'Done':
+                        
+                        # If status is 'Done' or 'To be Deleted', disable everything
+                        if status in ['Done', 'To be Deleted']:
                             # Disable all entry fields
                             for widget in entry_widgets:
                                 widget.config(state='readonly')
-                            # Disable buttons
+                            # Disable buttons except SELECT
                             for btn in manage_frame.winfo_children():
                                 if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
                                     btn.config(state='disabled')
