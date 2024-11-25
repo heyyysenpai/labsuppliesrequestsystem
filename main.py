@@ -243,6 +243,7 @@ def create_main_window():
             messagebox.showwarning("Selection Error", "Please select an item to delete.")
             return
         
+        # Get the request_no from the selected item's values
         request_no = my_tree.item(selected_item[0])['values'][0]
         
         if current_user_role == 'staff':
@@ -251,11 +252,14 @@ def create_main_window():
                 "This will mark the item for deletion and require admin approval. Continue?")
             if response:
                 try:
-                    # Get the record to update
+                    # Get the specific record to update using request_no
                     get_record = supabase.table('labsuppliesrequestsystem')\
                         .select('*')\
                         .eq('request_no', request_no)\
                         .execute()
+                    
+                    print(f"Selected request_no: {request_no}")  # Debug print
+                    print(f"Found record: {get_record.data}")    # Debug print
                     
                     if get_record.data:
                         record_id = get_record.data[0]['id']
@@ -265,19 +269,19 @@ def create_main_window():
                             .eq('id', record_id)\
                             .execute()
                         
-                        print(f"Update response: {result}")
+                        print(f"Update response: {result}")  # Debug print
                         
                         # Clear all fields including Status
                         for i in range(len(placeholderArray)):
                             placeholderArray[i].set("")
                         
                         # Re-enable Request Date field for staff
-                        entry_widgets[2].config(state='normal')  # Index 2 is Request Date
+                        entry_widgets[2].config(state='normal')
                         
                         # Reset selection button
                         select_button.config(text="SELECT")
                         # Remove tree selection
-                        my_tree.selection_remove(my_tree.selection())
+                        my_tree.selection_remove(selected_item)
                         
                         # Refresh table to show updated status
                         refresh_table()
@@ -288,25 +292,26 @@ def create_main_window():
                     print(f"Staff delete error: {str(e)}")
                     messagebox.showerror("Error", f"Failed to mark for deletion: {str(e)}")
         else:
-            # Admin workflow - delete directly
+            # Admin workflow - similar changes for actual deletion
             response = messagebox.askyesno("Delete", "Are you sure you want to delete this item?")
             if response:
                 try:
-                    # Get the record to delete
                     get_record = supabase.table('labsuppliesrequestsystem')\
                         .select('*')\
                         .eq('request_no', request_no)\
                         .execute()
                     
+                    print(f"Selected request_no: {request_no}")  # Debug print
+                    print(f"Found record: {get_record.data}")    # Debug print
+                    
                     if get_record.data:
                         record_id = get_record.data[0]['id']
-                        # Delete the record
                         result = supabase.table('labsuppliesrequestsystem')\
                             .delete()\
                             .eq('id', record_id)\
                             .execute()
                         
-                        print(f"Delete response: {result}")
+                        print(f"Delete response: {result}")  # Debug print
                         refresh_table()
                         clear()
                         messagebox.showinfo("Success", "Item deleted successfully")
