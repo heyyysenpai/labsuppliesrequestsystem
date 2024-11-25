@@ -226,6 +226,8 @@ def create_main_window():
             else:
                 # For staff, use existing clear() function behavior
                 clear()
+                # Re-enable Request Date field for staff
+                entry_widgets[2].config(state='normal')  # Index 2 is Request Date
             
             select_button.config(text="SELECT")
             
@@ -265,8 +267,17 @@ def create_main_window():
                         
                         print(f"Update response: {result}")
                         
-                        # Update the status in the form
-                        placeholderArray[1].set('To be Deleted')
+                        # Clear all fields including Status
+                        for i in range(len(placeholderArray)):
+                            placeholderArray[i].set("")
+                        
+                        # Re-enable Request Date field for staff
+                        entry_widgets[2].config(state='normal')  # Index 2 is Request Date
+                        
+                        # Reset selection button
+                        select_button.config(text="SELECT")
+                        # Remove tree selection
+                        my_tree.selection_remove(my_tree.selection())
                         
                         # Refresh table to show updated status
                         refresh_table()
@@ -323,12 +334,22 @@ def create_main_window():
             # Reset Status to empty as well
             placeholderArray[1].set("")  # Corrected index for STATUS
             
-            # If admin, keep Request Date disabled
-            if current_user_role == 'admin':
-                entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
+            # Re-enable all appropriate fields for staff
+            if current_user_role == 'staff':
+                # Enable all fields except REQUEST NO. and STATUS
+                for i, widget in enumerate(entry_widgets):
+                    if i in [0, 1]:  # REQUEST NO. and STATUS
+                        widget.config(state='readonly')
+                    else:
+                        widget.config(state='normal')
+                
+                # Re-enable buttons
+                for btn in manage_frame.winfo_children():
+                    if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                        btn.config(state='normal')
             else:
-                # For staff, enable Request Date when unselecting
-                entry_widgets[2].config(state='normal')
+                # For admin, keep Request Date disabled
+                entry_widgets[2].config(state='disabled')
             
             return
         
