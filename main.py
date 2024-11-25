@@ -287,6 +287,20 @@ def create_main_window():
         global placeholderArray, selected_record_id
         selected_item = my_tree.selection()
         
+        # If button text is "UNSELECT", clear selection and reset everything
+        if select_button['text'] == "UNSELECT":
+            my_tree.selection_remove(my_tree.selection())
+            select_button.config(text="SELECT")
+            selected_record_id = None
+            
+            # Empty out all fields in the form
+            for placeholder in placeholderArray:
+                placeholder.set("")
+            
+            # Reset Status to empty as well
+            placeholderArray[6].set("")
+            return
+        
         if selected_item:
             values = my_tree.item(selected_item[0])['values']
             request_no = values[0]
@@ -302,6 +316,7 @@ def create_main_window():
                     for i, value in enumerate(values):
                         if value is not None:
                             placeholderArray[i].set(str(value))
+                    select_button.config(text="UNSELECT")
             except Exception as e:
                 print(f"Select error: {str(e)}")
                 messagebox.showerror("Error", "Failed to get record details")
@@ -419,14 +434,21 @@ def create_main_window():
             ("ADD+", add_new),
             ("SAVE", save),
             ("DELETE", delete),
-            ("SELECT", select),
+            ("SELECT", select),  # Initial text will be "SELECT"
             ("CLEAR", clear),
             ("EXPORT", export)
         ]
 
+        # Store the select button as a global variable so we can modify it
+        global select_button
+        
         for col, (text, command) in enumerate(buttons):
             btn = Button(manage_frame, text=text, width=10, borderwidth=3, 
                         bg=btnColor, fg='white', command=command)
+            
+            # Store reference to select button
+            if text == "SELECT":
+                select_button = btn
             
             # Disable certain buttons for staff
             if current_user_role == 'staff' and text in ['EXPORT']:
