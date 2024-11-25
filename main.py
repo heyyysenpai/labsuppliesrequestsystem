@@ -199,15 +199,16 @@ def create_main_window():
         }
         
         try:
+            # Check if we're updating an existing record
             if selected_record_id:
-                # Update existing record
+                # Update existing record using the selected_record_id
                 result = supabase.table('labsuppliesrequestsystem')\
                     .update(data)\
                     .eq('id', selected_record_id)\
                     .execute()
                 messagebox.showinfo("Success", "Record updated successfully")
             else:
-                # Insert new record
+                # If no record is selected, this is a new entry
                 result = supabase.table('labsuppliesrequestsystem')\
                     .insert(data)\
                     .execute()
@@ -217,10 +218,15 @@ def create_main_window():
             selected_record_id = None
             refresh_table()
             
-            # Clear all fields and set status back to PENDING
-            clear()
+            # Clear all fields after saving
+            if current_user_role == 'admin':
+                # Clear all fields for admin
+                for placeholder in placeholderArray:
+                    placeholder.set("")
+            else:
+                # For staff, use existing clear() function behavior
+                clear()
             
-            # Reset select button text to "SELECT"
             select_button.config(text="SELECT")
             
         except Exception as e:
@@ -315,7 +321,15 @@ def create_main_window():
                 placeholder.set("")
             
             # Reset Status to empty as well
-            placeholderArray[6].set("")
+            placeholderArray[1].set("")  # Corrected index for STATUS
+            
+            # If admin, keep Request Date disabled
+            if current_user_role == 'admin':
+                entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
+            else:
+                # For staff, enable Request Date when unselecting
+                entry_widgets[2].config(state='normal')
+            
             return
         
         if selected_item:
@@ -334,6 +348,10 @@ def create_main_window():
                         if value is not None:
                             placeholderArray[i].set(str(value))
                     select_button.config(text="UNSELECT")
+                    
+                    # Always disable Request Date when an item is selected
+                    entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
+                    
             except Exception as e:
                 print(f"Select error: {str(e)}")
                 messagebox.showerror("Error", "Failed to get record details")
@@ -477,6 +495,7 @@ def create_main_window():
         
     # Create the entries frame
     def create_entries_frame():
+        global entry_widgets
         entries_frame = LabelFrame(frame, text="Form", borderwidth=5)
         entries_frame.grid(row=1, column=0, sticky="w", padx=10, pady=20)
 
@@ -501,9 +520,9 @@ def create_main_window():
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i])
                 elif i == 1:  # STATUS
                     widget = ttk.Combobox(entries_frame, width=50, textvariable=placeholderArray[i], values=statusArray)
-                elif i == 2:  # REQUEST DATE
+                elif i == 2:  # REQUEST DATE - Always readonly for admin
                     widget = DateEntry(entries_frame, width=47, textvariable=placeholderArray[i], 
-                                     date_pattern='yyyy-mm-dd', state='readonly')
+                                     date_pattern='yyyy-mm-dd', state='disabled')  # Changed to disabled
                 else:  # All other fields
                     widget = Entry(entries_frame, width=50, textvariable=placeholderArray[i], state='readonly')
                 entry_widgets.append(widget)
