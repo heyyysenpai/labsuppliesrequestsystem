@@ -162,15 +162,27 @@ def create_main_window():
         global selected_record_id
         request_data = [var.get() for var in placeholderArray]
         
-        # Check if any form field is filled
-        if not any(request_data):
-            messagebox.showwarning("Input Error", "Please select a row to update or fill in the form for a new entry.")
-            return
-        
-        # Check if all required fields are filled
-        if not all(request_data):
-            messagebox.showwarning("Input Error", "Please fill in all fields.")
-            return
+        # For staff users, we only need to check if any field other than request_no is filled
+        if current_user_role == "staff":
+            # Exclude request_no (index 0) from the check
+            other_fields = request_data[1:]
+            if not any(other_fields):
+                messagebox.showwarning("Input Error", "Please select a row to update or fill in the form for a new entry.")
+                return
+            
+            # Check if all required fields except request_no are filled
+            if not all(other_fields):
+                messagebox.showwarning("Input Error", "Please fill in all fields except Request No.")
+                return
+        else:
+            # For non-staff users, keep original validation
+            if not any(request_data):
+                messagebox.showwarning("Input Error", "Please select a row to update or fill in the form for a new entry.")
+                return
+            
+            if not all(request_data):
+                messagebox.showwarning("Input Error", "Please fill in all fields.")
+                return
         
         data = {
             'request_no': request_data[0],
@@ -204,7 +216,12 @@ def create_main_window():
             # Reset selected_record_id and refresh
             selected_record_id = None
             refresh_table()
+            
+            # Clear all fields and set status back to PENDING
             clear()
+            
+            # Reset select button text to "SELECT"
+            select_button.config(text="SELECT")
             
         except Exception as e:
             print(f"Save error: {str(e)}")
