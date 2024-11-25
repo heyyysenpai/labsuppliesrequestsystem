@@ -352,6 +352,33 @@ def create_main_window():
                     # Always disable Request Date when an item is selected
                     entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
                     
+                    # Add this new block
+                    if current_user_role == 'staff':
+                        # Check if item has Request No. and Status is 'Done'
+                        request_no = placeholderArray[0].get()
+                        status = placeholderArray[1].get()
+                        if request_no and status == 'Done':
+                            # Disable all entry fields
+                            for widget in entry_widgets:
+                                widget.config(state='readonly')
+                            # Disable buttons
+                            for btn in manage_frame.winfo_children():
+                                if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                                    btn.config(state='disabled')
+                        else:
+                            # Enable appropriate fields for staff
+                            for i, widget in enumerate(entry_widgets):
+                                if i in [0, 1]:  # REQUEST NO. and STATUS
+                                    widget.config(state='readonly')
+                                elif i == 2:  # REQUEST DATE
+                                    widget.config(state='disabled')
+                                else:
+                                    widget.config(state='normal')
+                            # Enable buttons
+                            for btn in manage_frame.winfo_children():
+                                if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                                    btn.config(state='normal')
+
             except Exception as e:
                 print(f"Select error: {str(e)}")
                 messagebox.showerror("Error", "Failed to get record details")
@@ -462,6 +489,7 @@ def create_main_window():
 
     # Create the manage frame
     def create_manage_frame():
+        global manage_frame
         manage_frame = LabelFrame(frame, text="Manage", borderwidth=5)
         manage_frame.grid(row=0, column=0, sticky="w", padx=10, pady=20)
 
