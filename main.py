@@ -424,19 +424,24 @@ def create_main_window():
 
     # Export function
     def export():
-        selected_item = my_tree.selection()
-        if not selected_item:
-            messagebox.showinfo("Export", "No data")
+        selected_items = my_tree.selection()
+        if not selected_items:
+            messagebox.showinfo("Export", "No data selected for export.")
             return
         
         try:
-            # Get selected values and columns
-            values = list(my_tree.item(selected_item[0])['values'])  # Convert tuple to list
+            # Prepare a list to hold the values of selected rows
+            all_values = []
             columns = ["Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", 
-                      "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation"]
+                       "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation"]
             
-            # Create DataFrame with the selected row
-            df = pd.DataFrame([values], columns=columns)
+            # Collect values from all selected items
+            for item in selected_items:
+                values = list(my_tree.item(item)['values'])  # Convert tuple to list
+                all_values.append(values)
+            
+            # Create DataFrame with the selected rows
+            df = pd.DataFrame(all_values, columns=columns)
             
             # Generate Excel filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
