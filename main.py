@@ -235,7 +235,6 @@ def create_main_window():
             return
         
         if current_user_role == 'staff':
-            # Staff delete code remains unchanged...
             confirm = messagebox.askyesno("Confirm", "Do you want to request deletion for the selected items?")
             if confirm:
                 try:
@@ -248,17 +247,30 @@ def create_main_window():
                         
                         # Create a more specific mask for matching
                         if request_no == '' or request_no == 'nan':
-                            # If no request number, match both item name and ensure request_no is empty
                             mask = (df['item'] == item_name) & (df['request_no'].isna() | (df['request_no'] == ''))
                         else:
-                            # If there's a request number, use that for exact matching
                             mask = df['request_no'] == request_no
                         
-                        # Update status only for the exact matching row
                         if mask.any():
                             df.loc[mask, 'status'] = 'To be Deleted'
                     
                     df.to_csv(csv_file, index=False)
+                    
+                    # Reset UI state after successful deletion request
+                    for placeholder in placeholderArray:
+                        placeholder.set("")
+                    
+                    select_button.config(text="SELECT")
+                    save_button.config(state='disabled')
+                    clear_button.config(state='disabled')
+                    
+                    # Re-enable all appropriate fields for staff
+                    for i, widget in enumerate(entry_widgets):
+                        if i in [0, 1]:  # REQUEST NO. and STATUS
+                            widget.config(state='readonly')
+                        else:
+                            widget.config(state='normal')
+                    
                     refresh_table()
                     messagebox.showinfo("Success", "Your deletion request has been submitted successfully!")
                     
