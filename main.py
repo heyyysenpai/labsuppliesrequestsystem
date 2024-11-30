@@ -667,50 +667,55 @@ def create_main_window():
                 my_tree.delete(item)
             
             try:
-                # Fetch fresh data from Supabase
-                df = pd.read_csv("labsuppreqsys-data.csv")
-                data_to_display = df.values.tolist()
+                # Read CSV and handle NaN values
+                df = pd.read_csv(csv_file).astype(str).replace('nan', '')
                 
                 if not search_text:
                     # Display all data when search is empty
-                    for row in data_to_display:
+                    for _, row in df.iterrows():
                         values = [
-                            row[0],
-                            row[1],
-                            row[2],
-                            row[3],
-                            row[4],
-                            row[5],
-                            row[6],
-                            row[7],
-                            row[8],
-                            row[9],
-                            row[10]
+                            row['request_no'],
+                            row['status'],
+                            row['request_date'],
+                            row['item'],
+                            row['quantity'],
+                            row['unit'],
+                            row['catalog_no'],
+                            row['brand'],
+                            row['product_link'],
+                            row['iob_allocation'],
+                            row['ppmp_allocation']
                         ]
+                        # Replace any remaining 'nan' with empty string
+                        values = ['' if v == 'nan' else v for v in values]
                         my_tree.insert('', 'end', values=values, tag="orow")
                 else:
                     # Filter and display matching rows
-                    for row in data_to_display:
-                        row_values = [str(value).lower() for value in row]
+                    for _, row in df.iterrows():
+                        # Convert all values to lowercase strings for comparison
+                        row_values = [str(v).lower() for v in row.values]
                         if any(search_text in value for value in row_values):
                             values = [
-                                row[0],
-                                row[1],
-                                row[2],
-                                row[3],
-                                row[4],
-                                row[5],
-                                row[6],
-                                row[7],
-                                row[8],
-                                row[9],
-                                row[10]
+                                row['request_no'],
+                                row['status'],
+                                row['request_date'],
+                                row['item'],
+                                row['quantity'],
+                                row['unit'],
+                                row['catalog_no'],
+                                row['brand'],
+                                row['product_link'],
+                                row['iob_allocation'],
+                                row['ppmp_allocation']
                             ]
+                            # Replace any remaining 'nan' with empty string
+                            values = ['' if v == 'nan' else v for v in values]
                             my_tree.insert('', 'end', values=values, tag="orow")
             
                 # Maintain row styling
                 my_tree.tag_configure('orow', background="#EEEEEE")
             except Exception as e:
+                print(f"Search error: {str(e)}")
                 messagebox.showerror("Database Error", f"Failed to fetch data: {str(e)}")
         
         search_var.trace('w', on_search_change)
