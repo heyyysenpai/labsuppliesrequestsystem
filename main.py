@@ -293,6 +293,7 @@ def create_main_window():
         if select_button['text'] == "UNSELECT":
             my_tree.selection_remove(my_tree.selection())
             select_button.config(text="SELECT")
+            save_button.config(state='disabled')  # Disable save button when unselecting
             selected_record_id = None
             
             # Empty out all fields in the form
@@ -322,6 +323,7 @@ def create_main_window():
             return
         
         if selected_item:
+            save_button.config(state='normal')  # Enable save button when item is selected
             values = my_tree.item(selected_item[0])['values']
             request_no = values[0] if values[0] != 'nan' else ''
             
@@ -501,16 +503,19 @@ def create_main_window():
             ("EXPORT", export)
         ]
 
-        # Store the select button as a global variable so we can modify it
-        global select_button
+        # Store the select button and save button as global variables
+        global select_button, save_button
         
         for col, (text, command) in enumerate(buttons):
             btn = Button(manage_frame, text=text, width=10, borderwidth=3, 
                         bg=btnColor, fg='white', command=command)
             
-            # Store reference to select button
+            # Store references to buttons
             if text == "SELECT":
                 select_button = btn
+            elif text == "SAVE":
+                save_button = btn
+                save_button.config(state='disabled')  # Initially disabled
             
             # Disable certain buttons for staff
             if current_user_role == 'staff' and text in ['EXPORT']:
