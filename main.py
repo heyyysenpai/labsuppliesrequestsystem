@@ -237,29 +237,28 @@ def create_main_window():
 
     # Delete function
     def delete():
-        selected_item = my_tree.selection()
+        selected_items = my_tree.selection()
         
-        if not selected_item:
-            messagebox.showwarning("Selection Error", "Please select an item to delete.")
+        if not selected_items:
+            messagebox.showwarning("Selection Error", "Please select at least one item to delete.")
             return
         
-        # Get the request_no from the selected item's values
-        request_no = my_tree.item(selected_item[0])['values'][0]
-        
+        # Confirm deletion for staff
         if current_user_role == 'staff':
-            # Staff workflow - mark for deletion
-            response = messagebox.askyesno("Mark for Deletion", 
-                "This will mark the item for deletion and require admin approval. Continue?")
-            if response:
-                try:
+            response = messagebox.askyesno("Mark for Deletion", "This will mark the selected items for deletion and require admin approval. Continue?")
+            if not response:
+                return
+            
+            try:
+                for item in selected_items:
+                    # Get the request_no from the selected item's values
+                    request_no = my_tree.item(item)['values'][0]
+                    
                     # Get the specific record to update using request_no
                     get_record = supabase.table('labsuppliesrequestsystem')\
                         .select('*')\
                         .eq('request_no', request_no)\
                         .execute()
-                    
-                    print(f"Selected request_no: {request_no}")  # Debug print
-                    print(f"Found record: {get_record.data}")    # Debug print
                     
                     if get_record.data:
                         record_id = get_record.data[0]['id']
@@ -269,57 +268,54 @@ def create_main_window():
                             .eq('id', record_id)\
                             .execute()
                         
-                        print(f"Update response: {result}")  # Debug print
-                        
-                        # Clear all fields including Status
-                        for i in range(len(placeholderArray)):
-                            placeholderArray[i].set("")
-                        
-                        # Re-enable Request Date field for staff
-                        entry_widgets[2].config(state='normal')
-                        
-                        # Reset selection button
-                        select_button.config(text="SELECT")
-                        # Remove tree selection
-                        my_tree.selection_remove(selected_item)
-                        
-                        # Refresh table to show updated status
-                        refresh_table()
-                        messagebox.showinfo("Success", "Item marked for deletion")
+                        print(f"Marked record with request_no: {request_no} for deletion, response: {result}")
                     else:
-                        messagebox.showerror("Error", "Record not found")
-                except Exception as e:
-                    print(f"Staff delete error: {str(e)}")
-                    messagebox.showerror("Error", f"Failed to mark for deletion: {str(e)}")
+                        messagebox.showerror("Error", f"Record with request_no {request_no} not found.")
+                
+                # Refresh the table to show updated data
+                refresh_table()
+                messagebox.showinfo("Success", "Selected items marked for deletion.")
+            
+            except Exception as e:
+                print(f"Error marking for deletion: {str(e)}")
+                messagebox.showerror("Error", f"Failed to mark items for deletion: {str(e)}")
+        
+        # For Admin: Directly delete the records
         else:
-            # Admin workflow - similar changes for actual deletion
-            response = messagebox.askyesno("Delete", "Are you sure you want to delete this item?")
-            if response:
-                try:
+            response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
+            if not response:
+                return
+            
+            try:
+                for item in selected_items:
+                    # Get the request_no from the selected item's values
+                    request_no = my_tree.item(item)['values'][0]
+                    
+                    # Get the specific record to delete using request_no
                     get_record = supabase.table('labsuppliesrequestsystem')\
                         .select('*')\
                         .eq('request_no', request_no)\
                         .execute()
                     
-                    print(f"Selected request_no: {request_no}")  # Debug print
-                    print(f"Found record: {get_record.data}")    # Debug print
-                    
                     if get_record.data:
                         record_id = get_record.data[0]['id']
+                        # Delete the record
                         result = supabase.table('labsuppliesrequestsystem')\
                             .delete()\
                             .eq('id', record_id)\
                             .execute()
                         
-                        print(f"Delete response: {result}")  # Debug print
-                        refresh_table()
-                        clear()
-                        messagebox.showinfo("Success", "Item deleted successfully")
+                        print(f"Deleted record with request_no: {request_no}, response: {result}")
                     else:
-                        messagebox.showerror("Error", "Record not found")
-                except Exception as e:
-                    print(f"Admin delete error: {str(e)}")
-                    messagebox.showerror("Error", f"Failed to delete: {str(e)}")
+                        messagebox.showerror("Error", f"Record with request_no {request_no} not found.")
+                
+                # Refresh the table to show updated data
+                refresh_table()
+                messagebox.showinfo("Success", "Selected items deleted successfully.")
+            
+            except Exception as e:
+                print(f"Admin delete error: {str(e)}")
+                messagebox.showerror("Error", f"Failed to delete: {str(e)}")
 
     # Select function
     def select():
@@ -424,19 +420,24 @@ def create_main_window():
 
     # Export function
     def export():
-        selected_item = my_tree.selection()
-        if not selected_item:
-            messagebox.showinfo("Export", "No data")
+        selected_items = my_tree.selection()
+        if not selected_items:
+            messagebox.showinfo("Export", "No data selected for export.")
             return
         
         try:
-            # Get selected values and columns
-            values = list(my_tree.item(selected_item[0])['values'])  # Convert tuple to list
+            # Prepare a list to hold the values of selected rows
+            all_values = []
             columns = ["Request No.", "Status", "Request Date", "Item", "Quantity", "Unit", 
-                      "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation"]
+                       "Catalog No.", "Brand", "Product Link", "IOB Allocation", "PPMP Allocation"]
             
-            # Create DataFrame with the selected row
-            df = pd.DataFrame([values], columns=columns)
+            # Collect values from all selected items
+            for item in selected_items:
+                values = list(my_tree.item(item)['values'])  # Convert tuple to list
+                all_values.append(values)
+            
+            # Create DataFrame with the selected rows
+            df = pd.DataFrame(all_values, columns=columns)
             
             # Generate Excel filename with timestamp
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
