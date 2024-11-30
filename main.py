@@ -300,6 +300,7 @@ def create_main_window():
             my_tree.selection_remove(my_tree.selection())
             select_button.config(text="SELECT")
             save_button.config(state='disabled')  # Disable save button when unselecting
+            clear_button.config(state='disabled')  # Disable clear button when unselecting
             selected_record_id = None
             
             # Empty out all fields in the form
@@ -320,7 +321,7 @@ def create_main_window():
                 
                 # Re-enable buttons
                 for btn in manage_frame.winfo_children():
-                    if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                    if btn['text'] in ['ADD+']:
                         btn.config(state='normal')
             else:
                 # For admin, keep Request Date disabled
@@ -330,6 +331,7 @@ def create_main_window():
         
         if selected_item:
             save_button.config(state='normal')  # Enable save button when item is selected
+            clear_button.config(state='normal')  # Enable clear button when item is selected
             values = my_tree.item(selected_item[0])['values']
             request_no = values[0] if values[0] != 'nan' else ''
             
@@ -394,9 +396,19 @@ def create_main_window():
             placeholderArray[0].set("")  # Clear REQUEST NO.
             placeholderArray[1].set("")  # Clear STATUS
         else:
-            # Staff can clear everything except REQUEST NO. and STATUS
-            for i in range(2, len(placeholderArray)):
+            # Staff can clear everything except REQUEST NO., STATUS, and REQUEST DATE
+            # Save the current request date
+            current_date = placeholderArray[2].get()
+            
+            # Clear fields from index 3 onwards (skipping REQUEST NO., STATUS, and REQUEST DATE)
+            for i in range(3, len(placeholderArray)):
                 placeholderArray[i].set("")
+            
+            # Restore the request date
+            placeholderArray[2].set(current_date)
+        
+        # Disable clear button after clearing
+        clear_button.config(state='disabled')
 
     # Export function
     def export():
@@ -509,8 +521,8 @@ def create_main_window():
             ("EXPORT", export)
         ]
 
-        # Store the select button and save button as global variables
-        global select_button, save_button
+        # Store the select button, save button, and clear button as global variables
+        global select_button, save_button, clear_button
         
         for col, (text, command) in enumerate(buttons):
             btn = Button(manage_frame, text=text, width=10, borderwidth=3, 
@@ -522,6 +534,9 @@ def create_main_window():
             elif text == "SAVE":
                 save_button = btn
                 save_button.config(state='disabled')  # Initially disabled
+            elif text == "CLEAR":
+                clear_button = btn
+                clear_button.config(state='disabled')  # Initially disabled
             
             # Disable certain buttons for staff
             if current_user_role == 'staff' and text in ['EXPORT']:
