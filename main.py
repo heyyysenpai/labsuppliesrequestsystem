@@ -7,49 +7,34 @@ from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from datetime import datetime
 import pandas as pd
-from dotenv import load_dotenv
-load_dotenv()
-
-import os
-
-from supabase import create_client, Client
+from pathlib import Path
+import csv
 from tkcalendar import DateEntry
-
-
-# After load_dotenv()
-print("Supabase URL:", os.environ.get("SUPABASE_URL"))
-print("Supabase Key:", os.environ.get("SUPABASE_KEY"))
-
-# Initialize Supabase client
-url = os.environ.get("SUPABASE_URL")
-key = os.environ.get("SUPABASE_KEY")
-
-if not url or not key:
-    raise Exception("Supabase credentials not found in environment variables")
-
-supabase: Client = create_client(url, key)
-
-try:
-    # Test the connection
-    print("Attempting to connect to Supabase...")
-    print(f"Table name: labsuppliesrequestsystem")
-    response = supabase.table('labsuppliesrequestsystem').select("*").execute()
-    print("Raw response:", response)
-    print("Response data:", response.data)
-    print("Supabase connection successful!")
-    print(f"Number of records: {len(response.data)}")
-    if response.data:
-        print("First record:", response.data[0])
-    else:
-        print("No records found in the response")
-except Exception as e:
-    print(f"Supabase connection error: {str(e)}")
-    print(f"Error type: {type(e)}")
 
 last_request_number = 0 # To keep track of last request number
 saved_requests = [] # List of saved requests
 current_user_role = None  # Will store 'admin' or 'staff'
 selected_record_id = None
+
+# Initialize CSV database
+def initialize_csv():
+    csv_file = Path("labsuppreqsys-data.csv")
+    headers = [
+        'id', 'request_no', 'status', 'request_date', 'item', 
+        'quantity', 'unit', 'catalog_no', 'brand', 'product_link', 
+        'iob_allocation', 'ppmp_allocation'
+    ]
+    
+    if not csv_file.exists():
+        # Create empty DataFrame with the correct columns
+        df = pd.DataFrame(columns=headers)
+        # Save it as CSV with empty strings instead of NaN
+        df.to_csv(csv_file, index=False, na_rep='')
+        print("Created new CSV file")
+    
+    return csv_file
+
+csv_file = initialize_csv()
 
 def create_main_window():
     # Initialize the main window
@@ -113,41 +98,31 @@ def create_main_window():
             my_tree.delete(data)
         
         try:
-            print("\nRefresh Table Debug:")
-            print("1. Attempting to fetch data...")
-            response = supabase.table('labsuppliesrequestsystem').select(
-                'request_no, status, request_date, item, quantity, unit, catalog_no, brand, product_link, iob_allocation, ppmp_allocation'
-            ).execute()
-            print("2. Response received:", response)
-            supabase_data = response.data
-            print("3. Data extracted:", supabase_data)
-            print(f"4. Number of records: {len(supabase_data)}")
-            
-            if not supabase_data:
-                print("5. No data returned from Supabase")
-                return
-            
-            for row in supabase_data:
-                print("6. Processing row:", row)
-                values = [
-                    row.get('request_no', ''),
-                    row.get('status', ''),
-                    row.get('request_date', ''),
-                    row.get('item', ''),
-                    row.get('quantity', ''),
-                    row.get('unit', ''),
-                    row.get('catalog_no', ''),
-                    row.get('brand', ''),
-                    row.get('product_link', ''),
-                    row.get('iob_allocation', ''),
-                    row.get('ppmp_allocation', '')
-                ]
-                my_tree.insert(parent='', index='end', values=values, tag="orow")
-            
-            my_tree.tag_configure('orow', background="#EEEEEE")
+            df = pd.read_csv(csv_file)
+            if not df.empty:
+                # Replace NaN values with empty strings
+                df = df.fillna('')
+                for _, row in df.iterrows():
+                    values = [
+                        '' if pd.isna(row['request_no']) or row['request_no'] == 'nan' else row['request_no'],
+                        row['status'],
+                        row['request_date'],
+                        row['item'],
+                        row['quantity'],
+                        row['unit'],
+                        row['catalog_no'],
+                        row['brand'],
+                        row['product_link'],
+                        row['iob_allocation'],
+                        row['ppmp_allocation']
+                    ]
+                    # Convert all values to strings and replace 'nan' with empty string
+                    values = ['' if str(v).lower() == 'nan' else str(v) for v in values]
+                    my_tree.insert(parent='', index='end', values=values, tag="orow")
+                
+                my_tree.tag_configure('orow', background="#EEEEEE")
         except Exception as e:
             print(f"Error in refresh_table: {str(e)}")
-            print(f"Error type: {type(e)}")
             messagebox.showerror("Database Error", f"Failed to fetch data: {str(e)}")
 
     # Generate code
@@ -199,22 +174,20 @@ def create_main_window():
         }
         
         try:
-            # Check if we're updating an existing record
-            if selected_record_id:
-                # Update existing record using the selected_record_id
-                result = supabase.table('labsuppliesrequestsystem')\
-                    .update(data)\
-                    .eq('id', selected_record_id)\
-                    .execute()
-                messagebox.showinfo("Success", "Record updated successfully")
-            else:
-                # If no record is selected, this is a new entry
-                result = supabase.table('labsuppliesrequestsystem')\
-                    .insert(data)\
-                    .execute()
-                messagebox.showinfo("Success", "Record saved successfully")
+            df = pd.read_csv(csv_file)
             
-            # Reset selected_record_id and refresh
+            if selected_record_id is not None:
+                # Update existing record
+                df.loc[df['id'] == selected_record_id] = [selected_record_id] + list(data.values())
+            else:
+                # Add new record
+                new_id = len(df) + 1 if not df.empty else 1
+                new_row = pd.DataFrame([{'id': new_id, **data}])
+                df = pd.concat([df, new_row], ignore_index=True)
+            
+            df.to_csv(csv_file, index=False)
+            messagebox.showinfo("Success", "Record saved successfully")
+            
             selected_record_id = None
             refresh_table()
             
@@ -243,86 +216,36 @@ def create_main_window():
             messagebox.showwarning("Selection Error", "Please select at least one item to delete.")
             return
         
-        # Confirm deletion for staff
-        if current_user_role == 'staff':
-            response = messagebox.askyesno("Mark for Deletion", "This will mark the selected items for deletion and require admin approval. Continue?")
-            if not response:
-                return
+        try:
+            df = pd.read_csv(csv_file)
             
-            try:
+            if current_user_role == 'staff':
+                # Mark for deletion
                 for item in selected_items:
-                    # Get the request_no from the selected item's values
                     request_no = my_tree.item(item)['values'][0]
-                    
-                    # Get the specific record to update using request_no
-                    get_record = supabase.table('labsuppliesrequestsystem')\
-                        .select('*')\
-                        .eq('request_no', request_no)\
-                        .execute()
-                    
-                    if get_record.data:
-                        record_id = get_record.data[0]['id']
-                        # Update status to 'To be Deleted'
-                        result = supabase.table('labsuppliesrequestsystem')\
-                            .update({'status': 'To be Deleted'})\
-                            .eq('id', record_id)\
-                            .execute()
-                        
-                        print(f"Marked record with request_no: {request_no} for deletion, response: {result}")
-                    else:
-                        messagebox.showerror("Error", f"Record with request_no {request_no} not found.")
-                
-                # Refresh the table to show updated data
-                refresh_table()
+                    df.loc[df['request_no'] == request_no, 'status'] = 'To be Deleted'
                 messagebox.showinfo("Success", "Selected items marked for deletion.")
+            else:
+                # Admin direct delete
+                response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
+                if response:
+                    for item in selected_items:
+                        request_no = my_tree.item(item)['values'][0]
+                        df = df[df['request_no'] != request_no]
+                    messagebox.showinfo("Success", "Selected items deleted successfully.")
             
-            except Exception as e:
-                print(f"Error marking for deletion: {str(e)}")
-                messagebox.showerror("Error", f"Failed to mark items for deletion: {str(e)}")
-        
-        # For Admin: Directly delete the records
-        else:
-            response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
-            if not response:
-                return
+            df.to_csv(csv_file, index=False)
+            refresh_table()
             
-            try:
-                for item in selected_items:
-                    # Get the request_no from the selected item's values
-                    request_no = my_tree.item(item)['values'][0]
-                    
-                    # Get the specific record to delete using request_no
-                    get_record = supabase.table('labsuppliesrequestsystem')\
-                        .select('*')\
-                        .eq('request_no', request_no)\
-                        .execute()
-                    
-                    if get_record.data:
-                        record_id = get_record.data[0]['id']
-                        # Delete the record
-                        result = supabase.table('labsuppliesrequestsystem')\
-                            .delete()\
-                            .eq('id', record_id)\
-                            .execute()
-                        
-                        print(f"Deleted record with request_no: {request_no}, response: {result}")
-                    else:
-                        messagebox.showerror("Error", f"Record with request_no {request_no} not found.")
-                
-                # Refresh the table to show updated data
-                refresh_table()
-                messagebox.showinfo("Success", "Selected items deleted successfully.")
-            
-            except Exception as e:
-                print(f"Admin delete error: {str(e)}")
-                messagebox.showerror("Error", f"Failed to delete: {str(e)}")
+        except Exception as e:
+            print(f"Delete error: {str(e)}")
+            messagebox.showerror("Error", f"Failed to delete: {str(e)}")
 
     # Select function
     def select():
         global placeholderArray, selected_record_id
         selected_item = my_tree.selection()
         
-        # If button text is "UNSELECT", clear selection and reset everything
         if select_button['text'] == "UNSELECT":
             my_tree.selection_remove(my_tree.selection())
             select_button.config(text="SELECT")
@@ -359,47 +282,45 @@ def create_main_window():
             request_no = values[0]
             
             try:
-                record = supabase.table('labsuppliesrequestsystem')\
-                    .select('*')\
-                    .eq('request_no', request_no)\
-                    .execute()
+                df = pd.read_csv(csv_file)
+                record = df[df['request_no'] == request_no].iloc[0]
+                selected_record_id = record['id']
                 
-                if record.data:
-                    selected_record_id = record.data[0]['id']
-                    for i, value in enumerate(values):
-                        if value is not None:
-                            placeholderArray[i].set(str(value))
-                    select_button.config(text="UNSELECT")
+                for i, value in enumerate(values):
+                    if value is not None:
+                        placeholderArray[i].set(str(value))
+                
+                select_button.config(text="UNSELECT")
+                
+                # Always disable Request Date when an item is selected
+                entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
+                
+                if current_user_role == 'staff':
+                    # Get current status
+                    status = placeholderArray[1].get()
                     
-                    # Always disable Request Date when an item is selected
-                    entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
-                    
-                    if current_user_role == 'staff':
-                        # Get current status
-                        status = placeholderArray[1].get()
-                        
-                        # If status is 'Done' or 'To be Deleted', disable everything
-                        if status in ['Done', 'To be Deleted']:
-                            # Disable all entry fields
-                            for widget in entry_widgets:
+                    # If status is 'Done' or 'To be Deleted', disable everything
+                    if status in ['Done', 'To be Deleted']:
+                        # Disable all entry fields
+                        for widget in entry_widgets:
+                            widget.config(state='readonly')
+                        # Disable buttons except SELECT
+                        for btn in manage_frame.winfo_children():
+                            if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                                btn.config(state='disabled')
+                    else:
+                        # Enable appropriate fields for staff
+                        for i, widget in enumerate(entry_widgets):
+                            if i in [0, 1]:  # REQUEST NO. and STATUS
                                 widget.config(state='readonly')
-                            # Disable buttons except SELECT
-                            for btn in manage_frame.winfo_children():
-                                if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
-                                    btn.config(state='disabled')
-                        else:
-                            # Enable appropriate fields for staff
-                            for i, widget in enumerate(entry_widgets):
-                                if i in [0, 1]:  # REQUEST NO. and STATUS
-                                    widget.config(state='readonly')
-                                elif i == 2:  # REQUEST DATE
-                                    widget.config(state='disabled')
-                                else:
-                                    widget.config(state='normal')
-                            # Enable buttons
-                            for btn in manage_frame.winfo_children():
-                                if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
-                                    btn.config(state='normal')
+                            elif i == 2:  # REQUEST DATE
+                                widget.config(state='disabled')
+                            else:
+                                widget.config(state='normal')
+                        # Enable buttons
+                        for btn in manage_frame.winfo_children():
+                            if btn['text'] in ['ADD+', 'SAVE', 'CLEAR']:
+                                btn.config(state='normal')
 
             except Exception as e:
                 print(f"Select error: {str(e)}")
@@ -453,53 +374,53 @@ def create_main_window():
 
     # Add new function
     def add_new():
-        # Only staff can add new records
         if current_user_role != 'staff':
             messagebox.showwarning("Access Denied", "Only staff members can add new records.")
             return
 
-        # Get current values
         request_data = [var.get() for var in placeholderArray]
         
-        # Check if REQUEST NO. is not empty
         if request_data[0]:  # REQUEST NO. is at index 0
             messagebox.showwarning("Input Error", "REQUEST NO. must be empty for new records.")
             return
         
-        # Check if all required fields (except REQUEST NO.) are filled
         if not all(request_data[2:]):  # Skip REQUEST NO. and STATUS
             messagebox.showwarning("Input Error", "Please fill in all fields.")
             return
         
-        # Set STATUS to "Pending"
-        placeholderArray[1].set("Pending")  # STATUS is at index 1
-        
-        # Update request_data with the new STATUS
-        request_data[1] = "Pending"
-        
-        data = {
-            'request_no': '',  # Empty REQUEST NO.
-            'status': 'Pending',
-            'request_date': request_data[2],
-            'item': request_data[3],
-            'quantity': request_data[4],
-            'unit': request_data[5],
-            'catalog_no': request_data[6],
-            'brand': request_data[7],
-            'product_link': request_data[8],
-            'iob_allocation': request_data[9],
-            'ppmp_allocation': request_data[10]
-        }
+        placeholderArray[1].set("Pending")  # Set STATUS to Pending
         
         try:
-            # Insert new record
-            result = supabase.table('labsuppliesrequestsystem')\
-                .insert(data)\
-                .execute()
+            df = pd.read_csv(csv_file)
+            
+            new_id = len(df) + 1 if not df.empty else 1
+            data = {
+                'id': new_id,
+                'request_no': '',  # Explicitly set as empty string
+                'status': 'Pending',
+                'request_date': request_data[2],
+                'item': request_data[3],
+                'quantity': request_data[4],
+                'unit': request_data[5],
+                'catalog_no': request_data[6],
+                'brand': request_data[7],
+                'product_link': request_data[8],
+                'iob_allocation': request_data[9],
+                'ppmp_allocation': request_data[10]
+            }
+            
+            # Create new DataFrame row and ensure no NaN values
+            new_row = pd.DataFrame([data])
+            new_row = new_row.fillna('')  # Replace any NaN values with empty strings
+            
+            # Concatenate and ensure no NaN values in entire DataFrame
+            df = pd.concat([df, new_row], ignore_index=True)
+            df = df.fillna('')  # Replace any NaN values with empty strings
+            
+            # Save to CSV with empty strings instead of NaN
+            df.to_csv(csv_file, index=False, na_rep='')
             
             messagebox.showinfo("Success", "Record added successfully")
-            
-            # Reset form and refresh table
             clear()
             refresh_table()
             
@@ -626,45 +547,43 @@ def create_main_window():
             
             try:
                 # Fetch fresh data from Supabase
-                response = supabase.table('labsuppliesrequestsystem').select(
-                    'request_no, status, request_date, item, quantity, unit, catalog_no, brand, product_link, iob_allocation, ppmp_allocation'
-                ).execute()
-                data_to_display = response.data
+                df = pd.read_csv("labsuppreqsys-data.csv")
+                data_to_display = df.values.tolist()
                 
                 if not search_text:
                     # Display all data when search is empty
                     for row in data_to_display:
                         values = [
-                            row.get('request_no', ''),
-                            row.get('status', ''),
-                            row.get('request_date', ''),
-                            row.get('item', ''),
-                            row.get('quantity', ''),
-                            row.get('unit', ''),
-                            row.get('catalog_no', ''),
-                            row.get('brand', ''),
-                            row.get('product_link', ''),
-                            row.get('iob_allocation', ''),
-                            row.get('ppmp_allocation', '')
+                            row[0],
+                            row[1],
+                            row[2],
+                            row[3],
+                            row[4],
+                            row[5],
+                            row[6],
+                            row[7],
+                            row[8],
+                            row[9],
+                            row[10]
                         ]
                         my_tree.insert('', 'end', values=values, tag="orow")
                 else:
                     # Filter and display matching rows
                     for row in data_to_display:
-                        row_values = [str(value).lower() for value in row.values()]
+                        row_values = [str(value).lower() for value in row]
                         if any(search_text in value for value in row_values):
                             values = [
-                                row.get('request_no', ''),
-                                row.get('status', ''),
-                                row.get('request_date', ''),
-                                row.get('item', ''),
-                                row.get('quantity', ''),
-                                row.get('unit', ''),
-                                row.get('catalog_no', ''),
-                                row.get('brand', ''),
-                                row.get('product_link', ''),
-                                row.get('iob_allocation', ''),
-                                row.get('ppmp_allocation', '')
+                                row[0],
+                                row[1],
+                                row[2],
+                                row[3],
+                                row[4],
+                                row[5],
+                                row[6],
+                                row[7],
+                                row[8],
+                                row[9],
+                                row[10]
                             ]
                             my_tree.insert('', 'end', values=values, tag="orow")
             
