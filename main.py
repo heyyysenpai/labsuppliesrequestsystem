@@ -179,7 +179,12 @@ def create_main_window():
             
             if selected_record_id is not None:
                 # Update existing record
-                df.loc[df['id'] == selected_record_id] = [selected_record_id] + list(data.values())
+                mask = df['id'] == selected_record_id
+                if mask.any():
+                    for column, value in data.items():
+                        df.loc[mask, column] = value
+                else:
+                    raise Exception("Selected record not found")
             else:
                 # Add new record
                 new_id = len(df) + 1 if not df.empty else 1
@@ -204,6 +209,7 @@ def create_main_window():
                 entry_widgets[2].config(state='normal')  # Index 2 is Request Date
             
             select_button.config(text="SELECT")
+            save_button.config(state='disabled')  # Disable save button after saving
             
         except Exception as e:
             print(f"Save error: {str(e)}")
