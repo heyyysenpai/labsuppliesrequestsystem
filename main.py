@@ -217,58 +217,73 @@ def create_main_window():
             messagebox.showwarning("Selection Error", "Please select at least one item to delete.")
             return
         
-        # Read CSV and handle NaN values properly
-        df = pd.read_csv(csv_file).astype(str).replace('nan', '')
-        
         if current_user_role == 'staff':
-            success_count = 0
-            for item in selected_items:
-                values = my_tree.item(item)['values']
-                request_no = str(values[0])  # Get request_no from selected item
-                item_name = str(values[3])   # Get item name from selected item
-                
-                # Find matching row
-                if request_no == '' or request_no == 'nan':
-                    # Match by item name if no request number
-                    mask = df['item'] == item_name
-                else:
-                    # Match by request number if available
-                    mask = df['request_no'] == request_no
-                
-                if mask.any():
-                    df.loc[mask, 'status'] = 'To be Deleted'
-                    success_count += 1
+            # Ask for confirmation
+            confirm = messagebox.askyesno("Confirm", "Do you want to request deletion for the selected items?")
             
-            if success_count > 0:
-                # Save changes to CSV
-                df.to_csv(csv_file, index=False)
-                # Refresh the table
-                refresh_table()
-                # Clear selection and form
-                my_tree.selection_remove(selected_items)
-                for placeholder in placeholderArray:
-                    placeholder.set("")
-                messagebox.showinfo("Success", "Selected items marked for deletion.")
-        else:
-            # Admin direct delete
+            if confirm:
+                try:
+                    # Read CSV
+                    df = pd.read_csv(csv_file)
+                    
+                    # Update status for selected items
+                    for item in selected_items:
+                        values = my_tree.item(item)['values']
+                        request_no = str(values[0])
+                        item_name = str(values[3])
+                        
+                        # Find matching row
+                        if request_no == '' or request_no == 'nan':
+                            mask = df['item'] == item_name
+                        else:
+                            mask = df['request_no'] == request_no
+                        
+                        # Update status
+                        if mask.any():
+                            df.loc[mask, 'status'] = 'To be Deleted'
+                    
+                    # Save changes
+                    df.to_csv(csv_file, index=False)
+                    
+                    # Clear selection and form
+                    my_tree.selection_remove(selected_items)
+                    for placeholder in placeholderArray:
+                        placeholder.set("")
+                    
+                    # Refresh table
+                    refresh_table()
+                    
+                    # Show success message
+                    window.after(100, lambda: messagebox.showinfo("Success", 
+                        "Your deletion request has been submitted successfully!"))
+                    
+                except Exception as e:
+                    print(f"Error in delete: {str(e)}")
+                    messagebox.showerror("Error", "Could not process deletion request.")
+    
+        else:  # Admin user
+            # Admin delete code remains the same
             response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
             if response:
+                df = pd.read_csv(csv_file)
+                df = df.fillna('')
+                
                 for item in selected_items:
                     values = my_tree.item(item)['values']
                     request_no = str(values[0])
                     item_name = str(values[3])
                     
                     if request_no == '' or request_no == 'nan':
-                        df = df[df['item'] != item_name]  # Delete by item name
+                        df = df[df['item'] != item_name]
                     else:
-                        df = df[df['request_no'] != request_no]  # Delete by request number
+                        df = df[df['request_no'] != request_no]
                 
                 df.to_csv(csv_file, index=False)
-                messagebox.showinfo("Success", "Selected items deleted successfully.")
                 refresh_table()
                 my_tree.selection_remove(selected_items)
                 for placeholder in placeholderArray:
                     placeholder.set("")
+                messagebox.showinfo("Success", "Selected items deleted successfully.")
 
     # Select function
     def select():
