@@ -537,6 +537,45 @@ def create_main_window():
             messagebox.showwarning("Input Error", "PRODUCT LINK must be a valid website URL (e.g., https://example.com)")
             return
         
+        # Validate IOB Allocation (index 9) and PPMP Allocation (index 10)
+        allocation_pattern = re.compile(r'^[A-Za-z\s\W]+-\d+$')
+        
+        # Validate and format IOB Allocation
+        if not allocation_pattern.match(request_data[9]):
+            messagebox.showwarning("Input Error", "IOB Allocation must follow the format 'text-number' (e.g., ABC-123)")
+            return
+        
+        try:
+            # Extract and validate the number part of IOB Allocation
+            text_part, number_part = request_data[9].split('-')
+            iob_number = int(number_part)
+            if iob_number <= 0:
+                messagebox.showwarning("Input Error", "IOB Allocation number must be a positive whole number")
+                return
+            # Format with spaces around hyphen
+            request_data[9] = f"{text_part.strip()} - {number_part.strip()}"
+        except (ValueError, IndexError):
+            messagebox.showwarning("Input Error", "Invalid IOB Allocation format")
+            return
+        
+        # Validate and format PPMP Allocation
+        if not allocation_pattern.match(request_data[10]):
+            messagebox.showwarning("Input Error", "PPMP Allocation must follow the format 'text-number' (e.g., XYZ-456)")
+            return
+        
+        try:
+            # Extract and validate the number part of PPMP Allocation
+            text_part, number_part = request_data[10].split('-')
+            ppmp_number = int(number_part)
+            if ppmp_number <= 0:
+                messagebox.showwarning("Input Error", "PPMP Allocation number must be a positive whole number")
+                return
+            # Format with spaces around hyphen
+            request_data[10] = f"{text_part.strip()} - {number_part.strip()}"
+        except (ValueError, IndexError):
+            messagebox.showwarning("Input Error", "Invalid PPMP Allocation format")
+            return
+        
         if not all(request_data[2:]):  # Skip REQUEST NO. and STATUS
             messagebox.showwarning("Input Error", "Please fill in all fields.")
             return
