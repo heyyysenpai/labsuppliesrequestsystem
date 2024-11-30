@@ -98,13 +98,13 @@ def create_main_window():
             my_tree.delete(data)
         
         try:
-            df = pd.read_csv(csv_file)
+            # Read CSV and handle NaN values properly
+            df = pd.read_csv(csv_file).astype(str).replace('nan', '')
+            
             if not df.empty:
-                # Replace NaN values with empty strings
-                df = df.fillna('')
                 for _, row in df.iterrows():
                     values = [
-                        '' if pd.isna(row['request_no']) or row['request_no'] == 'nan' else row['request_no'],
+                        row['request_no'],
                         row['status'],
                         row['request_date'],
                         row['item'],
@@ -116,11 +116,12 @@ def create_main_window():
                         row['iob_allocation'],
                         row['ppmp_allocation']
                     ]
-                    # Convert all values to strings and replace 'nan' with empty string
-                    values = ['' if str(v).lower() == 'nan' else str(v) for v in values]
+                    # Replace any remaining 'nan' with empty string
+                    values = ['' if v == 'nan' else v for v in values]
                     my_tree.insert(parent='', index='end', values=values, tag="orow")
                 
                 my_tree.tag_configure('orow', background="#EEEEEE")
+            
         except Exception as e:
             print(f"Error in refresh_table: {str(e)}")
             messagebox.showerror("Database Error", f"Failed to fetch data: {str(e)}")
@@ -216,30 +217,58 @@ def create_main_window():
             messagebox.showwarning("Selection Error", "Please select at least one item to delete.")
             return
         
-        try:
-            df = pd.read_csv(csv_file)
+        # Read CSV and handle NaN values properly
+        df = pd.read_csv(csv_file).astype(str).replace('nan', '')
+        
+        if current_user_role == 'staff':
+            success_count = 0
+            for item in selected_items:
+                values = my_tree.item(item)['values']
+                request_no = str(values[0])  # Get request_no from selected item
+                item_name = str(values[3])   # Get item name from selected item
+                
+                # Find matching row
+                if request_no == '' or request_no == 'nan':
+                    # Match by item name if no request number
+                    mask = df['item'] == item_name
+                else:
+                    # Match by request number if available
+                    mask = df['request_no'] == request_no
+                
+                if mask.any():
+                    df.loc[mask, 'status'] = 'To be Deleted'
+                    success_count += 1
             
-            if current_user_role == 'staff':
-                # Mark for deletion
-                for item in selected_items:
-                    request_no = my_tree.item(item)['values'][0]
-                    df.loc[df['request_no'] == request_no, 'status'] = 'To be Deleted'
+            if success_count > 0:
+                # Save changes to CSV
+                df.to_csv(csv_file, index=False)
+                # Refresh the table
+                refresh_table()
+                # Clear selection and form
+                my_tree.selection_remove(selected_items)
+                for placeholder in placeholderArray:
+                    placeholder.set("")
                 messagebox.showinfo("Success", "Selected items marked for deletion.")
-            else:
-                # Admin direct delete
-                response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
-                if response:
-                    for item in selected_items:
-                        request_no = my_tree.item(item)['values'][0]
-                        df = df[df['request_no'] != request_no]
-                    messagebox.showinfo("Success", "Selected items deleted successfully.")
-            
-            df.to_csv(csv_file, index=False)
-            refresh_table()
-            
-        except Exception as e:
-            print(f"Delete error: {str(e)}")
-            messagebox.showerror("Error", f"Failed to delete: {str(e)}")
+        else:
+            # Admin direct delete
+            response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
+            if response:
+                for item in selected_items:
+                    values = my_tree.item(item)['values']
+                    request_no = str(values[0])
+                    item_name = str(values[3])
+                    
+                    if request_no == '' or request_no == 'nan':
+                        df = df[df['item'] != item_name]  # Delete by item name
+                    else:
+                        df = df[df['request_no'] != request_no]  # Delete by request number
+                
+                df.to_csv(csv_file, index=False)
+                messagebox.showinfo("Success", "Selected items deleted successfully.")
+                refresh_table()
+                my_tree.selection_remove(selected_items)
+                for placeholder in placeholderArray:
+                    placeholder.set("")
 
     # Select function
     def select():
@@ -279,16 +308,23 @@ def create_main_window():
         
         if selected_item:
             values = my_tree.item(selected_item[0])['values']
-            request_no = values[0]
+            request_no = values[0] if values[0] != 'nan' else ''
             
             try:
                 df = pd.read_csv(csv_file)
-                record = df[df['request_no'] == request_no].iloc[0]
+                # Handle both empty strings and 'nan' values
+                if request_no == '':
+                    record = df[df['request_no'].isna() | (df['request_no'] == '')].iloc[0]
+                else:
+                    record = df[df['request_no'] == request_no].iloc[0]
+                
                 selected_record_id = record['id']
                 
                 for i, value in enumerate(values):
                     if value is not None:
-                        placeholderArray[i].set(str(value))
+                        # Convert 'nan' to empty string
+                        value_str = '' if pd.isna(value) or str(value).lower() == 'nan' else str(value)
+                        placeholderArray[i].set(value_str)
                 
                 select_button.config(text="UNSELECT")
                 
