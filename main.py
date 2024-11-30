@@ -227,6 +227,7 @@ def create_main_window():
 
     # Delete function
     def delete():
+        global select_button, save_button, clear_button
         selected_items = my_tree.selection()
         
         if not selected_items:
@@ -299,12 +300,22 @@ def create_main_window():
                     df = df.reset_index(drop=True)
                     df.to_csv(csv_file, index=False)
                     
-                    # Refresh and clear
-                    refresh_table()
-                    my_tree.selection_remove(selected_items)
+                    # After successful deletion, reset the UI state
+                    # Reset all fields
                     for placeholder in placeholderArray:
                         placeholder.set("")
                     
+                    # Reset button states
+                    select_button.config(text="SELECT")
+                    save_button.config(state='disabled')
+                    clear_button.config(state='disabled')
+                    
+                    # Reset selected_record_id
+                    global selected_record_id
+                    selected_record_id = None
+                    
+                    # Refresh the table
+                    refresh_table()
                     messagebox.showinfo("Success", "Selected items deleted successfully.")
                     
                 except Exception as e:
