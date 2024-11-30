@@ -177,39 +177,49 @@ def create_main_window():
         try:
             df = pd.read_csv(csv_file)
             
+            # Check if we're updating an existing record
             if selected_record_id is not None:
-                # Update existing record
-                mask = df['id'] == selected_record_id
-                if mask.any():
-                    for column, value in data.items():
-                        df.loc[mask, column] = value
-                else:
-                    raise Exception("Selected record not found")
+                # Update existing record using the ID
+                df.loc[df['id'] == selected_record_id, list(data.keys())] = list(data.values())
             else:
-                # Add new record
+                # Add new record (this part shouldn't be reached when updating)
                 new_id = len(df) + 1 if not df.empty else 1
                 new_row = pd.DataFrame([{'id': new_id, **data}])
                 df = pd.concat([df, new_row], ignore_index=True)
             
+            # Save changes
             df.to_csv(csv_file, index=False)
             messagebox.showinfo("Success", "Record saved successfully")
             
+            # Reset selection and refresh table
             selected_record_id = None
             refresh_table()
             
-            # Clear all fields after saving
+            # Clear fields after saving based on user role
             if current_user_role == 'admin':
                 # Clear all fields for admin
                 for placeholder in placeholderArray:
                     placeholder.set("")
             else:
-                # For staff, use existing clear() function behavior
-                clear()
+                # For staff:
+                # Clear all fields including Request No.
+                for i in range(len(placeholderArray)):
+                    placeholderArray[i].set("")
+                
                 # Re-enable Request Date field for staff
-                entry_widgets[2].config(state='normal')  # Index 2 is Request Date
+                entry_widgets[2].config(state='normal')
+                
+                # Reset field states
+                for i, widget in enumerate(entry_widgets):
+                    if i in [0, 1]:  # REQUEST NO. and STATUS
+                        widget.config(state='readonly')
+                    else:
+                        widget.config(state='normal')
             
+            # Reset buttons
             select_button.config(text="SELECT")
-            save_button.config(state='disabled')  # Disable save button after saving
+            save_button.config(state='disabled')
+            clear_button.config(state='disabled')
             
         except Exception as e:
             print(f"Save error: {str(e)}")
