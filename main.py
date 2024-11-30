@@ -392,10 +392,13 @@ def create_main_window():
                 
                 selected_record_id = record['id']
                 
-                # Check status for staff user
+                # Check status and request_no for staff user
                 if current_user_role == 'staff':
                     status = values[1]  # Status is the second column
-                    if status == 'To be Deleted':
+                    has_request_no = bool(request_no and request_no != 'nan')
+                    
+                    # Disable delete button if status is 'Done' or 'To be Deleted', or if item has request_no and status is 'Done'
+                    if status == 'To be Deleted' or (has_request_no and status == 'Done'):
                         delete_button.config(state='disabled')
                     else:
                         delete_button.config(state='normal')
