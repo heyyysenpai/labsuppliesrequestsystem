@@ -513,6 +513,30 @@ def create_main_window():
             messagebox.showwarning("Input Error", "REQUEST NO. must be empty for new records.")
             return
         
+        # Validate QUANTITY (index 4) - must be numeric
+        try:
+            quantity = float(request_data[4])
+            if quantity <= 0:
+                messagebox.showwarning("Input Error", "QUANTITY must be a positive number.")
+                return
+        except ValueError:
+            messagebox.showwarning("Input Error", "QUANTITY must be a valid number.")
+            return
+        
+        # Validate PRODUCT LINK (index 8) - must be a valid URL format
+        import re
+        url_pattern = re.compile(
+            r'^https?://'  # http:// or https://
+            r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'  # domain...
+            r'localhost|'  # localhost...
+            r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+            r'(?::\d+)?'  # optional port
+            r'(?:/?|[/?]\S+)$', re.IGNORECASE)
+        
+        if not url_pattern.match(request_data[8]):
+            messagebox.showwarning("Input Error", "PRODUCT LINK must be a valid website URL (e.g., https://example.com)")
+            return
+        
         if not all(request_data[2:]):  # Skip REQUEST NO. and STATUS
             messagebox.showwarning("Input Error", "Please fill in all fields.")
             return
