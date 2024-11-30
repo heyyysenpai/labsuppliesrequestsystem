@@ -234,15 +234,12 @@ def create_main_window():
             return
         
         if current_user_role == 'staff':
-            # Ask for confirmation
+            # Staff delete code remains unchanged...
             confirm = messagebox.askyesno("Confirm", "Do you want to request deletion for the selected items?")
-            
             if confirm:
                 try:
-                    # Read CSV
                     df = pd.read_csv(csv_file)
                     
-                    # Update status for selected items
                     for item in selected_items:
                         values = my_tree.item(item)['values']
                         request_no = str(values[0])
@@ -260,66 +257,59 @@ def create_main_window():
                         if mask.any():
                             df.loc[mask, 'status'] = 'To be Deleted'
                     
-                    # Save changes
+                    df.to_csv(csv_file, index=False)
+                    refresh_table()
+                    messagebox.showinfo("Success", "Your deletion request has been submitted successfully!")
+                    
+                except Exception as e:
+                    print(f"Delete error: {str(e)}")
+                    messagebox.showerror("Error", "Could not process deletion request.")
+    
+        else:  # Admin user
+            response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
+            if response:
+                try:
+                    df = pd.read_csv(csv_file)
+                    items_to_delete = []
+                    
+                    # First, identify all items to delete
+                    for item in selected_items:
+                        values = my_tree.item(item)['values']
+                        request_no = str(values[0])
+                        item_name = str(values[3])
+                        request_date = str(values[2])
+                        
+                        # Find the exact row in the DataFrame
+                        if request_no and request_no != 'nan':
+                            row = df[df['request_no'] == request_no]
+                        else:
+                            row = df[
+                                (df['item'] == item_name) & 
+                                (df['request_date'] == request_date) & 
+                                ((df['request_no'].isna()) | (df['request_no'] == ''))
+                            ]
+                        
+                        if not row.empty:
+                            items_to_delete.append(row.index[0])
+                    
+                    # Delete only the identified rows
+                    df = df.drop(items_to_delete)
+                    
+                    # Reset the index and save
+                    df = df.reset_index(drop=True)
                     df.to_csv(csv_file, index=False)
                     
-                    # Clear selection and form
+                    # Refresh and clear
+                    refresh_table()
                     my_tree.selection_remove(selected_items)
                     for placeholder in placeholderArray:
                         placeholder.set("")
                     
-                    # Reset all Manage buttons
-                    select_button.config(text="SELECT")
-                    save_button.config(state='disabled')
-                    clear_button.config(state='disabled')
-                    delete_button.config(state='normal')
-                    
-                    # Re-enable appropriate fields for staff
-                    for i, widget in enumerate(entry_widgets):
-                        if i in [0, 1]:  # REQUEST NO. and STATUS
-                            widget.config(state='readonly')
-                        else:
-                            widget.config(state='normal')
-                    
-                    # Re-enable ADD+ button
-                    for btn in manage_frame.winfo_children():
-                        if btn['text'] == 'ADD+':
-                            btn.config(state='normal')
-                    
-                    # Refresh table
-                    refresh_table()
-                    
-                    # Show success message
-                    window.after(100, lambda: messagebox.showinfo("Success", 
-                        "Your deletion request has been submitted successfully!"))
+                    messagebox.showinfo("Success", "Selected items deleted successfully.")
                     
                 except Exception as e:
-                    print(f"Error in delete: {str(e)}")
-                    messagebox.showerror("Error", "Could not process deletion request.")
-    
-        else:  # Admin user
-            # Admin delete code remains the same
-            response = messagebox.askyesno("Delete", "Are you sure you want to delete the selected items?")
-            if response:
-                df = pd.read_csv(csv_file)
-                df = df.fillna('')
-                
-                for item in selected_items:
-                    values = my_tree.item(item)['values']
-                    request_no = str(values[0])
-                    item_name = str(values[3])
-                    
-                    if request_no == '' or request_no == 'nan':
-                        df = df[df['item'] != item_name]
-                    else:
-                        df = df[df['request_no'] != request_no]
-                
-                df.to_csv(csv_file, index=False)
-                refresh_table()
-                my_tree.selection_remove(selected_items)
-                for placeholder in placeholderArray:
-                    placeholder.set("")
-                messagebox.showinfo("Success", "Selected items deleted successfully.")
+                    print(f"Delete error: {str(e)}")
+                    messagebox.showerror("Error", f"Failed to delete: {str(e)}")
 
     # Select function
     def select():
@@ -582,8 +572,10 @@ def create_main_window():
             elif text == "DELETE":
                 delete_button = btn
             
-            # Disable certain buttons for staff
+            # Disable buttons based on user role
             if current_user_role == 'staff' and text in ['EXPORT']:
+                btn['state'] = 'disabled'
+            elif current_user_role == 'admin' and text in ['ADD+']:
                 btn['state'] = 'disabled'
             
             btn.grid(row=0, column=col, padx=5, pady=5)
