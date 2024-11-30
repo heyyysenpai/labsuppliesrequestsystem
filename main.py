@@ -256,6 +256,23 @@ def create_main_window():
                     for placeholder in placeholderArray:
                         placeholder.set("")
                     
+                    # Reset all Manage buttons
+                    select_button.config(text="SELECT")
+                    save_button.config(state='disabled')
+                    clear_button.config(state='disabled')
+                    
+                    # Re-enable appropriate fields for staff
+                    for i, widget in enumerate(entry_widgets):
+                        if i in [0, 1]:  # REQUEST NO. and STATUS
+                            widget.config(state='readonly')
+                        else:
+                            widget.config(state='normal')
+                    
+                    # Re-enable ADD+ button
+                    for btn in manage_frame.winfo_children():
+                        if btn['text'] == 'ADD+':
+                            btn.config(state='normal')
+                    
                     # Refresh table
                     refresh_table()
                     
@@ -299,16 +316,20 @@ def create_main_window():
         if select_button['text'] == "UNSELECT":
             my_tree.selection_remove(my_tree.selection())
             select_button.config(text="SELECT")
-            save_button.config(state='disabled')  # Disable save button when unselecting
-            clear_button.config(state='disabled')  # Disable clear button when unselecting
+            save_button.config(state='disabled')
+            clear_button.config(state='disabled')
             selected_record_id = None
+            
+            # Re-enable delete button when unselecting
+            if current_user_role == 'staff':
+                delete_button.config(state='normal')
             
             # Empty out all fields in the form
             for placeholder in placeholderArray:
                 placeholder.set("")
             
             # Reset Status to empty as well
-            placeholderArray[1].set("")  # Corrected index for STATUS
+            placeholderArray[1].set("")
             
             # Re-enable all appropriate fields for staff
             if current_user_role == 'staff':
@@ -330,14 +351,14 @@ def create_main_window():
             return
         
         if selected_item:
-            save_button.config(state='normal')  # Enable save button when item is selected
-            clear_button.config(state='normal')  # Enable clear button when item is selected
+            save_button.config(state='normal')
+            clear_button.config(state='normal')
             values = my_tree.item(selected_item[0])['values']
-            request_no = values[0] if values[0] != 'nan' else ''
             
             try:
                 df = pd.read_csv(csv_file)
-                # Handle both empty strings and 'nan' values
+                request_no = values[0] if values[0] != 'nan' else ''
+                
                 if request_no == '':
                     record = df[df['request_no'].isna() | (df['request_no'] == '')].iloc[0]
                 else:
@@ -345,16 +366,24 @@ def create_main_window():
                 
                 selected_record_id = record['id']
                 
+                # Check status for staff user
+                if current_user_role == 'staff':
+                    status = values[1]  # Status is the second column
+                    if status == 'To be Deleted':
+                        delete_button.config(state='disabled')
+                    else:
+                        delete_button.config(state='normal')
+                
+                # Rest of the existing select code...
                 for i, value in enumerate(values):
                     if value is not None:
-                        # Convert 'nan' to empty string
                         value_str = '' if pd.isna(value) or str(value).lower() == 'nan' else str(value)
                         placeholderArray[i].set(value_str)
                 
                 select_button.config(text="UNSELECT")
                 
                 # Always disable Request Date when an item is selected
-                entry_widgets[2].config(state='disabled')  # Index 2 is Request Date
+                entry_widgets[2].config(state='disabled')
                 
                 if current_user_role == 'staff':
                     # Get current status
@@ -516,13 +545,13 @@ def create_main_window():
             ("ADD+", add_new),
             ("SAVE", save),
             ("DELETE", delete),
-            ("SELECT", select),  # Initial text will be "SELECT"
+            ("SELECT", select),
             ("CLEAR", clear),
             ("EXPORT", export)
         ]
 
-        # Store the select button, save button, and clear button as global variables
-        global select_button, save_button, clear_button
+        # Store button references globally
+        global select_button, save_button, clear_button, delete_button
         
         for col, (text, command) in enumerate(buttons):
             btn = Button(manage_frame, text=text, width=10, borderwidth=3, 
@@ -533,10 +562,12 @@ def create_main_window():
                 select_button = btn
             elif text == "SAVE":
                 save_button = btn
-                save_button.config(state='disabled')  # Initially disabled
+                save_button.config(state='disabled')
             elif text == "CLEAR":
                 clear_button = btn
-                clear_button.config(state='disabled')  # Initially disabled
+                clear_button.config(state='disabled')
+            elif text == "DELETE":
+                delete_button = btn
             
             # Disable certain buttons for staff
             if current_user_role == 'staff' and text in ['EXPORT']:
