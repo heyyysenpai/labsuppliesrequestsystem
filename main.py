@@ -248,13 +248,15 @@ def create_main_window():
                         request_no = str(values[0])
                         item_name = str(values[3])
                         
-                        # Find matching row
+                        # Create a more specific mask for matching
                         if request_no == '' or request_no == 'nan':
-                            mask = df['item'] == item_name
+                            # If no request number, match both item name and ensure request_no is empty
+                            mask = (df['item'] == item_name) & (df['request_no'].isna() | (df['request_no'] == ''))
                         else:
+                            # If there's a request number, use that for exact matching
                             mask = df['request_no'] == request_no
                         
-                        # Update status
+                        # Update status only for the exact matching row
                         if mask.any():
                             df.loc[mask, 'status'] = 'To be Deleted'
                     
@@ -270,6 +272,7 @@ def create_main_window():
                     select_button.config(text="SELECT")
                     save_button.config(state='disabled')
                     clear_button.config(state='disabled')
+                    delete_button.config(state='normal')
                     
                     # Re-enable appropriate fields for staff
                     for i, widget in enumerate(entry_widgets):
