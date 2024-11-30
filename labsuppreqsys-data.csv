@@ -1,7 +1,1 @@
 id,request_no,status,request_date,item,quantity,unit,catalog_no,brand,product_link,iob_allocation,ppmp_allocation
-1,Request-001,Done,2024-12-01,sa,1,sa,sa,sa,sa,sa,sa
-4,,To be Deleted,2024-11-30,a,1,a,a,a,a,a,a
-3,,To be Deleted,2024-12-01,b,2,b,b,b,b,b,b
-4,,Pending,2024-12-01,c,1,c,c,c,c,c,c
-5,,To be Deleted,2024-12-01,a,1,a,a,a,http://a.com,Other Items-13,Other Items-13
-6,,To be Deleted,2024-12-01,a,1000,a,a,a,http://a.com,A - 1,A - 1
